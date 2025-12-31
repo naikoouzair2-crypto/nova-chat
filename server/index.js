@@ -199,6 +199,27 @@ app.delete('/messages/:room', (req, res) => {
     res.json({ success: true });
 });
 
+app.post('/send_request', (req, res) => {
+    const { from, to } = req.body;
+    // Check if already friends
+    if (friends[from]?.includes(to)) {
+        return res.json({ success: false, message: "Already friends" });
+    }
+    // Check if already requested
+    if (requests[to]?.includes(from)) {
+        return res.json({ success: false, message: "Request already sent" });
+    }
+
+    if (!requests[to]) requests[to] = [];
+    requests[to].push(from);
+
+    // Notify recipient (using the room joined by username)
+    io.to(to).emit('request_received', { sender: from });
+
+    saveData();
+    res.json({ success: true });
+});
+
 app.post('/groups', (req, res) => {
     const { name, members, admin } = req.body;
     const id = uuidv4();
@@ -236,6 +257,11 @@ app.get('/groups/:username', (req, res) => {
 
 io.on('connection', (socket) => {
     // ...
+    socket.on('login', (username) => {
+        socket.join(username);
+        console.log(`User ${username} joined their personal room`);
+    });
+
     socket.on('send_message', (data) => {
         try {
             const messageWithId = { ...data, id: uuidv4() };
