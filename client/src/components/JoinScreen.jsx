@@ -112,13 +112,52 @@ function JoinScreen({ onJoin }) {
                         </button>
                     </motion.div>
                 ) : (
+                    <motion.div
+                        className="w-full"
+                        initial={{ x: 50, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                    >
+                        {/* Avatar Carousel */}
+                        <div className="w-full mb-8">
+                            <p className="text-xs text-center text-gray-500 mb-3 uppercase tracking-widest font-bold">Choose Avatar</p>
+                            <div className="flex overflow-x-auto gap-4 py-4 px-2 no-scrollbar snap-x justify-center">
+                                {avatars.map((url, i) => (
+                                    <motion.div
+                                        key={i}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={() => setSelectedAvatar(url)}
+                                        className={`relative shrink-0 w-20 h-20 rounded-full p-1 cursor-pointer transition-all duration-300 ${selectedAvatar === url
+                                            ? 'bg-gradient-to-tr from-blue-500 to-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-110'
+                                            : 'bg-transparent grayscale opacity-50 hover:grayscale-0 hover:opacity-100'
+                                            }`}
+                                    >
+                                        <img
+                                            src={url}
+                                            className="w-full h-full rounded-full bg-zinc-900 object-cover border-2 border-black"
+                                            alt="Avatar"
+                                        />
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
 
-                    {/* Footer */ }
-                    < div className="absolute bottom-6 text-gray-600 text-[10px] tracking-widest uppercase flex items-center gap-1">
+                        <button
+                            onClick={handleJoin}
+                            className="w-full bg-white text-black font-extrabold text-lg py-4 rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                        >
+                            <span>Enter Nova</span>
+                            <ArrowRight className="w-5 h-5" />
+                        </button>
+                    </motion.div>
+                )}
+            </motion.div>
+
+            {/* Footer */}
+            <div className="absolute bottom-6 text-gray-600 text-[10px] tracking-widest uppercase flex items-center gap-1">
                 <Sparkles className="w-3 h-3" />
                 <span>Next Gen Messaging</span>
+            </div>
         </div>
-        </div >
     );
 }
 
