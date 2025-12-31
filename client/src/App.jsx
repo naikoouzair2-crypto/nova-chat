@@ -100,7 +100,18 @@ function App() {
 
   useEffect(() => {
     if (currentUser) {
-      socket.emit("login", currentUser.username);
+      const login = () => {
+        socket.emit("login", currentUser.username);
+        // Also re-join active room if any
+        if (activeRoom) {
+          socket.emit("join_room", { username: currentUser.username, room: activeRoom });
+        }
+      };
+
+      socket.on('connect', login);
+      // Run immediately in case already connected
+      if (socket.connected) login();
+
       // Re-register silently on app load to ensure server knows about us (if server restarted)
       fetch(`${API_URL}/register`, {
         method: 'POST',
@@ -111,8 +122,12 @@ function App() {
       if ("Notification" in window && Notification.permission !== "granted") {
         Notification.requestPermission();
       }
+
+      return () => {
+        socket.off('connect', login);
+      };
     }
-  }, [currentUser]);
+  }, [currentUser, activeRoom]);
 
   useEffect(() => {
     // Request Permissions
