@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Search, LogOut } from 'lucide-react';
+import { Search, LogOut, Plus } from 'lucide-react';
 import novaLogo from '/nova_logo_v3.jpg';
 import { API_URL } from '../config';
+
+// 3D Avatar styles matched from JoinScreen
+const getAvatarStyle = (seed) => `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,ffdfbf`;
 
 function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
-    const [activeTab, setActiveTab] = useState("messages"); // "messages" | "requests"
-    const [requestList, setRequestList] = useState([]);
     const [friendList, setFriendList] = useState([]);
+    const [requestList, setRequestList] = useState([]);
 
     // Fetch Lists
     useEffect(() => {
@@ -19,10 +21,8 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                         fetch(`${API_URL}/friends/${currentUser.username}`),
                         fetch(`${API_URL}/requests/${currentUser.username}`)
                     ]);
-
                     const friendsData = await friendsRes.json();
                     const requestsData = await requestsRes.json();
-
                     setFriendList(friendsData);
                     setRequestList(requestsData);
                 } catch (e) {
@@ -30,170 +30,171 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                 }
             }
         };
-
         fetchLists();
-
-        // Polling for demo purposes (real-time would use socket events like 'request_received')
         const interval = setInterval(fetchLists, 5000);
         return () => clearInterval(interval);
     }, [currentUser]);
 
-    // Search Debounce
+    // Search
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
             if (searchTerm) {
                 try {
-                    const res = await fetch(`${API_URL}/search?q=${searchTerm}`); // Corrected Port
+                    const res = await fetch(`${API_URL}/search?q=${searchTerm}`);
                     const data = await res.json();
-                    // Filter out self
                     setSearchResults(data.filter(u => u.username !== currentUser.username));
-                } catch (err) {
-                    console.error(err);
-                }
+                } catch (err) { console.error(err); }
             } else {
                 setSearchResults([]);
             }
         }, 300);
-
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm, currentUser]);
 
     return (
-        <div className="w-full md:w-[350px] flex flex-col border-r border-[#262626] bg-black h-full font-sans">
+        <div className="w-full md:w-[380px] flex flex-col bg-black h-full border-r border-[#1a1a1a] relative">
             {/* Header */}
-            <div className="h-[60px] flex items-center justify-between px-5 pt-4 pb-2 shrink-0">
-                <div className="flex items-center gap-3 cursor-pointer">
-                    <img src={novaLogo} alt="Nova Chat" className="w-10 h-10 object-cover bg-white rounded-lg p-0.5" />
-                    <h1 className="font-bold text-xl text-white tracking-tight">Nova Chat</h1>
-                    <span className="bg-red-500 w-2 h-2 rounded-full self-start mt-1"></span>
+            <div className="flex items-center justify-between px-6 py-6">
+                <h1 className="text-3xl font-black text-white tracking-tight">Chats</h1>
+                <div className="flex gap-4">
+                    <button
+                        onClick={onLogout}
+                        className="w-10 h-10 rounded-full bg-[#1a1a1a] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors"
+                    >
+                        <LogOut className="w-5 h-5 text-gray-400" />
+                    </button>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-[2px]">
+                        <img src={currentUser?.avatar || getAvatarStyle(currentUser?.username)} className="w-full h-full rounded-full bg-black object-cover" />
+                    </div>
                 </div>
-                <button
-                    onClick={onLogout}
-                    title="Logout"
-                    className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-[#262626] transition-colors"
-                >
-                    <LogOut className="w-5 h-5" />
-                </button>
             </div>
 
-            {/* Profile Snippet */}
-            <div className="px-5 py-2 flex items-center gap-3 mb-2">
-                <img src={currentUser.avatar} className="w-8 h-8 rounded-full bg-gray-800" />
-                <span className="text-gray-400 text-sm">Logged as <span className="text-white font-bold">{currentUser.username}</span></span>
-            </div>
-
-            {/* Search Bar */}
-            <div className="px-4 mb-2">
-                <div className="relative">
-                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
+            {/* Search */}
+            <div className="px-6 mb-6">
+                <div className="relative group">
+                    <Search className="absolute left-4 top-3.5 w-5 h-5 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
                     <input
                         type="text"
-                        placeholder="Search users..."
-                        className="w-full bg-[#262626] rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-gray-600 placeholder-gray-500"
+                        placeholder="Search for friends..."
+                        className="w-full bg-[#121212] rounded-2xl py-3 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
             </div>
 
-            {/* User List */}
-            <div className="flex-1 overflow-y-auto">
-                {/* Search Results Section */}
-                {searchTerm && (
-                    <div className="px-5 mb-4">
-                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Search Results</h3>
-                        {searchResults.length === 0 && <p className="text-gray-500 text-sm italic">No users found.</p>}
+            {/* Stories / Active Users */}
+            {!searchTerm && (
+                <div className="mb-6 pl-6 overflow-x-auto no-scrollbar scroll-smooth">
+                    <div className="flex gap-4 pr-6">
+                        {/* My Story (Mock) */}
+                        <div className="flex flex-col items-center gap-1 shrink-0">
+                            <div className="relative w-[70px] h-[70px]">
+                                <div className="absolute inset-0 rounded-full border-2 border-dashed border-gray-700"></div>
+                                <div className="absolute inset-1 rounded-full bg-[#262626] flex items-center justify-center">
+                                    <Plus className="w-6 h-6 text-white" />
+                                </div>
+                            </div>
+                            <span className="text-xs font-medium text-gray-400">Your Story</span>
+                        </div>
+
+                        {/* Requests as Stories */}
+                        {requestList.map((user) => (
+                            <div
+                                key={user.username}
+                                onClick={() => onSelectUser({ ...user, isRequest: true })}
+                                className="flex flex-col items-center gap-1 shrink-0 cursor-pointer"
+                            >
+                                <div className="w-[70px] h-[70px] rounded-full p-[3px] bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500">
+                                    <div className="w-full h-full rounded-full p-[2px] bg-black">
+                                        <img src={user.avatar} className="w-full h-full rounded-full object-cover" />
+                                    </div>
+                                </div>
+                                <span className="text-xs font-medium text-white max-w-[70px] truncate">{user.username}</span>
+                            </div>
+                        ))}
+
+                        {/* Friends as Active */}
+                        {friendList.map((user) => (
+                            <div
+                                key={user.username}
+                                onClick={() => onSelectUser(user)}
+                                className="flex flex-col items-center gap-1 shrink-0 cursor-pointer"
+                            >
+                                <div className="w-[70px] h-[70px] rounded-full p-[3px] bg-gradient-to-tr from-green-400 to-blue-500 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all">
+                                    <div className="w-full h-full rounded-full p-[2px] bg-black">
+                                        <img src={user.avatar} className="w-full h-full rounded-full object-cover" />
+                                    </div>
+                                </div>
+                                <span className="text-xs font-medium text-gray-300 max-w-[70px] truncate">{user.username}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Chat List */}
+            <div className="flex-1 overflow-y-auto px-4 pb-4">
+                {searchTerm ? (
+                    <div className="space-y-2">
                         {searchResults.map((user) => (
                             <div
-                                key={user.id || user.username}
+                                key={user.username}
                                 onClick={() => onSelectUser(user)}
-                                className="flex items-center gap-3 py-2 cursor-pointer hover:bg-[#111] rounded-lg px-2 -mx-2"
+                                className="flex items-center gap-4 p-3 rounded-2xl hover:bg-[#1a1a1a] cursor-pointer transition-colors"
                             >
-                                <img src={user.avatar} className="w-10 h-10 rounded-full" />
-                                <div className="flex flex-col">
-                                    <span className="text-white font-semibold">{user.username}</span>
-                                    <span className="text-blue-500 text-xs">Tap to chat</span>
+                                <img src={user.avatar} className="w-14 h-14 rounded-full bg-[#262626]" />
+                                <div>
+                                    <h3 className="text-white font-bold">{user.username}</h3>
+                                    <span className="text-blue-400 text-sm font-medium">Tap to message</span>
                                 </div>
                             </div>
                         ))}
                     </div>
-                )}
+                ) : (
+                    <div className="space-y-1">
+                        {requestList.length > 0 && <p className="px-2 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-2">New Requests</p>}
 
-                {/* Main List (Tabs only visible if NOT searching) */}
-                {!searchTerm && (
-                    <div className="flex flex-col h-full">
-                        {/* Tabs */}
-                        <div className="flex items-center justify-between px-5 py-2 shrink-0">
-                            <span
-                                onClick={() => setActiveTab("messages")}
-                                className={`font-bold text-base cursor-pointer ${activeTab === 'messages' ? 'text-white' : 'text-gray-500'}`}
-                            >
-                                Messages
-                            </span>
-                            <span
-                                onClick={() => setActiveTab("requests")}
-                                className={`font-semibold text-sm cursor-pointer flex items-center gap-1 ${activeTab === 'requests' ? 'text-white' : 'text-gray-500'}`}
-                            >
-                                Requests
-                                {requestList.length > 0 && (
-                                    <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{requestList.length}</span>
-                                )}
-                            </span>
-                        </div>
+                        {/* Main Chat List */}
+                        {friendList.map((user) => {
+                            const isSelected = selectedUser?.username === user.username;
+                            return (
+                                <div
+                                    key={user.username}
+                                    onClick={() => onSelectUser(user)}
+                                    className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-all ${isSelected ? 'bg-[#1a1a1a]' : 'hover:bg-[#111]'}`}
+                                >
+                                    <div className="relative">
+                                        <img src={user.avatar} className="w-14 h-14 rounded-full bg-[#262626] object-cover" />
+                                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-black rounded-full"></div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-baseline mb-0.5">
+                                            <h3 className={`font-bold truncate text-base ${isSelected ? 'text-blue-400' : 'text-white'}`}>{user.username}</h3>
+                                            <span className="text-xs text-gray-500 font-medium">Now</span>
+                                        </div>
+                                        <p className="text-gray-400 text-sm truncate">Tap to open chat</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
 
-                        <div className="px-5 flex-1 overflow-y-auto">
-                            {activeTab === 'messages' ? (
-                                <>
-                                    {friendList.length === 0 && <p className="text-gray-500 text-sm mt-4 text-center">No active chats yet.</p>}
-                                    {friendList.map(user => (
-                                        <div
-                                            key={user.username}
-                                            onClick={() => onSelectUser(user)}
-                                            className={`flex items-center gap-3 py-3 cursor-pointer hover:bg-[#111] rounded-lg px-2 -mx-2 ${selectedUser?.username === user.username ? 'bg-[#1a1a1a]' : ''}`}
-                                        >
-                                            <img src={user.avatar} className="w-12 h-12 rounded-full border border-[#262626]" />
-                                            <div className="flex flex-col">
-                                                <span className="text-white font-semibold text-sm">{user.username}</span>
-                                                <span className="text-gray-500 text-xs">Active now</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </>
-                            ) : (
-                                <>
-                                    {requestList.length === 0 && <p className="text-gray-500 text-sm mt-4 text-center">No pending requests.</p>}
-                                    {requestList.map(user => (
-                                        <div
-                                            key={user.username}
-                                            onClick={() => onSelectUser({ ...user, isRequest: true })} // Mark as request
-                                            className="flex items-center gap-3 py-3 cursor-pointer hover:bg-[#111] rounded-lg px-2 -mx-2 opacity-80"
-                                        >
-                                            <img src={user.avatar} className="w-12 h-12 rounded-full border border-red-500/30" />
-                                            <div className="flex flex-col">
-                                                <span className="text-white font-semibold text-sm">{user.username}</span>
-                                                <span className="text-gray-400 text-xs">Sent a request</span>
-                                            </div>
-                                            <div className="ml-auto w-2 h-2 bg-blue-500 rounded-full"></div>
-                                        </div>
-                                    ))}
-                                </>
-                            )}
-                        </div>
+                        {friendList.length === 0 && requestList.length === 0 && (
+                            <div className="text-center py-10 opacity-50">
+                                <p className="text-gray-500">No conversations yet.</p>
+                                <p className="text-gray-600 text-sm">Search to find friends!</p>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
-            {/* Bottom Logo - Rotated Landscape */}
-            <div className="p-4 flex justify-center mt-auto">
-                <img
-                    src="/signature.jpg"
-                    alt="Signature"
-                    className="h-24 w-auto object-contain filter invert mix-blend-screen opacity-50 hover:opacity-100 transition-opacity transform rotate-90 origin-center"
-                    style={{ marginBottom: '-20px' }} // Adjust as needed
-                />
+
+            {/* Signature */}
+            <div className="p-4 flex justify-center opacity-20 hover:opacity-100 transition-opacity">
+                <img src="/signature.jpg" className="h-8 invert mix-blend-screen" />
             </div>
         </div>
     );
 }
 
 export default Sidebar;
-
