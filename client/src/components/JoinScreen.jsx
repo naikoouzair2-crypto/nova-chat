@@ -1,123 +1,111 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, ArrowRight } from 'lucide-react';
-import novaLogo from '/nova_logo_v3.jpg'; // Assuming I'll move the logo there
-import { API_URL } from '../config';
+import { ArrowRight, Sparkles } from 'lucide-react';
+import novaLogo from '/nova_logo_v3.jpg';
 
+// Premium 3D Avatars with Backgrounds
 const avatars = [
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Felix&backgroundColor=ffdfbf,c0aede,b6e3f4,ffdfbf',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Aneka&backgroundColor=b6e3f4',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Zack&backgroundColor=c0aede',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Molly&backgroundColor=ffdfbf',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Bear&backgroundColor=ffdfbf,c0aede',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Leo&backgroundColor=b6e3f4',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Simba&backgroundColor=c0aede',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Nala&backgroundColor=ffdfbf',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Willow&backgroundColor=b6e3f4',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Jack&backgroundColor=c0aede',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Lola&backgroundColor=ffdfbf',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Max&backgroundColor=b6e3f4',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Sasha&backgroundColor=c0aede',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Sam&backgroundColor=ffdfbf',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Nova&backgroundColor=b6e3f4',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Felix&backgroundColor=ffdfbf,c0aede,b6e3f4',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Aneka&backgroundColor=b6e3f4,ffdfbf',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Zack&backgroundColor=c0aede,b6e3f4',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Molly&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Leo&backgroundColor=b6e3f4,ffdfbf',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Simba&backgroundColor=c0aede,b6e3f4',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Nala&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Willow&backgroundColor=b6e3f4,ffdfbf',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Jack&backgroundColor=c0aede,b6e3f4',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Lola&backgroundColor=ffdfbf,c0aede',
 ];
-
-// ... inside JoinScreen component ...
-
-
 
 function JoinScreen({ onJoin }) {
     const [username, setUsername] = useState("");
     const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState("");
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (username && !isLoading) {
-            setIsLoading(true);
-            setError("");
-
-            // Register with backend
-            try {
-                const res = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, avatar: selectedAvatar })
-                });
-
-                if (!res.ok) throw new Error("Failed to connect to server");
-
-                const user = await res.json();
-                onJoin(user);
-            } catch (err) {
-                console.error("Registration failed", err);
-                setError("Unable to connect to chat server. Retrying...");
-                // Fallback for demo if server is dead (optional, but good for UX testing)
-                // onJoin({ username, avatar: selectedAvatar }); 
-            } finally {
-                setIsLoading(false);
-            }
+    const handleJoin = () => {
+        if (username.trim()) {
+            onJoin({ username, avatar: selectedAvatar });
         }
     };
 
     return (
-        <div className="flex items-center justify-center min-h-[100dvh] w-full bg-black p-4 font-sans text-white relative overflow-hidden">
-            {/* Background Elements */}
-            <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px]" />
-            <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[120px]" />
+        <div className="flex flex-col items-center justify-center min-h-[100dvh] w-full bg-black relative overflow-hidden">
+            {/* Ambient Background */}
+            <div className="absolute top-[-20%] left-[-20%] w-[500px] h-[500px] bg-purple-900/40 rounded-full blur-[120px]" />
+            <div className="absolute bottom-[-20%] right-[-20%] w-[500px] h-[500px] bg-blue-900/40 rounded-full blur-[120px]" />
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-md border border-[#262626] bg-[#000000] p-8 rounded-2xl relative z-10 flex flex-col items-center shadow-2xl"
+                transition={{ duration: 0.5 }}
+                className="w-full max-w-sm px-6 relative z-10 flex flex-col items-center"
             >
-                <img src={novaLogo} alt="Nova Chat" className="w-32 h-32 object-contain mb-6" />
-                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mb-2">Welcome to Nova</h1>
-                <p className="text-gray-400 text-sm mb-8">Create your identity to start chatting</p>
+                {/* Logo & Title */}
+                <div className="flex flex-col items-center mb-8">
+                    <img
+                        src={novaLogo}
+                        alt="Nova Chat"
+                        className="w-20 h-20 mb-4 object-contain drop-shadow-2xl"
+                        style={{ filter: "drop-shadow(0 0 15px rgba(59, 130, 246, 0.5))" }}
+                    />
+                    <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 tracking-tight">
+                        Nova Chat
+                    </h1>
+                    <p className="text-gray-400 text-sm mt-2 font-medium">Join the frequency.</p>
+                </div>
 
-                <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6">
-
-                    {/* Avatar Selection */}
-                    <p className="text-center text-xs text-gray-500 mb-1">Select your avatar</p>
-                    <div className="grid grid-cols-5 gap-3 mb-4 max-h-[160px] overflow-y-auto p-2 scrollbar-hide">
-                        {avatars.map((av, i) => (
-                            <img
+                {/* Avatar Carousel */}
+                <div className="w-full mb-8">
+                    <p className="text-xs text-center text-gray-500 mb-3 uppercase tracking-widest font-bold">Choose Avatar</p>
+                    <div className="flex overflow-x-auto gap-4 py-4 px-2 no-scrollbar snap-x justify-center">
+                        {avatars.map((url, i) => (
+                            <motion.div
                                 key={i}
-                                src={av}
-                                onClick={() => setSelectedAvatar(av)}
-                                className={`w-12 h-12 rounded-full cursor-pointer transition-all border-2 ${selectedAvatar === av ? 'border-purple-500 scale-110 shadow-lg shadow-purple-500/50' : 'border-[#262626] grayscale hover:grayscale-0 hover:scale-105'}`}
-                            />
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => setSelectedAvatar(url)}
+                                className={`relative shrink-0 w-20 h-20 rounded-full p-1 cursor-pointer transition-all duration-300 ${selectedAvatar === url
+                                    ? 'bg-gradient-to-tr from-blue-500 to-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-110'
+                                    : 'bg-transparent grayscale opacity-50 hover:grayscale-0 hover:opacity-100'
+                                    }`}
+                            >
+                                <img
+                                    src={url}
+                                    className="w-full h-full rounded-full bg-zinc-900 object-cover border-2 border-black"
+                                    alt="Avatar"
+                                />
+                            </motion.div>
                         ))}
                     </div>
+                </div>
 
-                    <div className="space-y-2">
-                        <label className="text-xs uppercase font-bold text-gray-500 tracking-wider">Username</label>
+                {/* Input & Button */}
+                <div className="w-full space-y-4">
+                    <div className="relative group">
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
                         <input
                             type="text"
-                            placeholder="e.g. AstroBoy"
-                            className="w-full bg-[#121212] border border-[#262626] rounded-xl px-4 py-3 text-white outline-none focus:border-purple-500/50 transition-colors"
+                            placeholder="Type your username..."
+                            value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            disabled={isLoading}
+                            className="relative w-full bg-[#121212] border border-[#262626] text-white text-center text-lg font-semibold placeholder-gray-600 rounded-xl py-4 focus:outline-none focus:border-blue-500 transition-colors"
                         />
                     </div>
 
-                    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
                     <button
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white font-bold py-3 rounded-xl mt-2 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        type="button"
-                        onClick={handleSubmit}
-                        disabled={!username || isLoading}
+                        onClick={handleJoin}
+                        disabled={!username.trim()}
+                        className="w-full bg-white text-black font-extrabold text-lg py-4 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
                     >
-                        {isLoading ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                            <>Start Chatting <ArrowRight className="w-4 h-4" /></>
-                        )}
+                        <span>Enter Nova</span>
+                        <ArrowRight className="w-5 h-5" />
                     </button>
-                </form>
+                </div>
             </motion.div>
+
+            {/* Footer */}
+            <div className="absolute bottom-6 text-gray-600 text-[10px] tracking-widest uppercase flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                <span>Next Gen Messaging</span>
+            </div>
         </div>
     );
 }
