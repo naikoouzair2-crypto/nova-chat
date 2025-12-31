@@ -14,6 +14,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
     const [searchResults, setSearchResults] = useState([]);
     const [friendList, setFriendList] = useState([]);
     const [requestList, setRequestList] = useState([]);
+    const [groupList, setGroupList] = useState([]);
     const [showProfileModal, setShowProfileModal] = useState(false);
 
     // ... rest of state
@@ -24,14 +25,17 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
         const fetchLists = async () => {
             if (currentUser) {
                 try {
-                    const [friendsRes, requestsRes] = await Promise.all([
+                    const [friendsRes, requestsRes, groupsRes] = await Promise.all([
                         fetch(`${API_URL}/friends/${currentUser.username}`),
-                        fetch(`${API_URL}/requests/${currentUser.username}`)
+                        fetch(`${API_URL}/requests/${currentUser.username}`),
+                        fetch(`${API_URL}/groups/${currentUser.username}`)
                     ]);
                     const friendsData = await friendsRes.json();
                     const requestsData = await requestsRes.json();
+                    const groupsData = await groupsRes.json();
                     setFriendList(friendsData);
                     setRequestList(requestsData);
+                    setGroupList(groupsData);
                 } catch (e) {
                     console.error("Failed to fetch sidebar lists", e);
                 }
@@ -76,6 +80,24 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                     >
                         <img src={currentUser?.avatar || getAvatarStyle(currentUser?.username)} className="w-full h-full rounded-full bg-black object-cover" />
                     </div>
+                    <button
+                        onClick={async () => {
+                            const name = prompt("Enter Group Name:");
+                            if (!name) return;
+                            const membersStr = prompt("Enter friend usernames to add (comma separated):");
+                            const members = membersStr ? membersStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+                            await fetch(`${API_URL}/groups`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name, members, admin: currentUser.username })
+                            });
+                            // Refetch will happen automatically via interval
+                        }}
+                        className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center hover:bg-blue-500 transition-colors"
+                    >
+                        <Plus className="w-5 h-5 text-white" />
+                    </button>
                 </div>
             </div>
 
@@ -163,6 +185,43 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                 ) : (
                     <div className="space-y-1">
                         {requestList.length > 0 && <p className="px-2 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-2">New Requests</p>}
+
+                        {requestList.map((user) => (
+                            <div
+                                key={user.username}
+                                onClick={() => onSelectUser({ ...user, isRequest: true })}
+                                className="flex items-center gap-4 p-3 rounded-2xl cursor-pointer hover:bg-[#1a1a1a] transition-colors"
+                            >
+                                <div className="relative">
+                                    <img src={user.avatar} className="w-14 h-14 rounded-full bg-[#262626] object-cover ring-2 ring-blue-500" />
+                                    <div className="absolute top-0 right-0 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold">!</div>
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-bold">{user.name || user.username}</h3>
+                                    <span className="text-blue-400 text-xs font-medium">Accept Request</span>
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Groups List */}
+                        {groupList.length > 0 && <p className="px-2 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-4">Groups</p>}
+                        {groupList.map((group) => (
+                            <div
+                                key={group.id}
+                                onClick={() => onSelectUser(group)}
+                                className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-all ${selectedUser?.id === group.id ? 'bg-[#1a1a1a]' : 'hover:bg-[#111]'}`}
+                            >
+                                <div className="relative">
+                                    <img src={group.avatar} className="w-14 h-14 rounded-full bg-[#262626] object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-white font-bold truncate">{group.name}</h3>
+                                    <span className="text-gray-500 text-xs">{group.members.length} members</span>
+                                </div>
+                            </div>
+                        ))}
+
+                        {friendList.length > 0 && <p className="px-2 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-4">Messages</p>}
 
                         {/* Main Chat List */}
                         {friendList.map((user) => {

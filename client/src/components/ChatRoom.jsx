@@ -183,7 +183,16 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                     <div className="bg-[#1a1a1a] rounded-2xl p-4 flex flex-col items-center gap-3">
                         <p className="text-gray-400 text-sm">{recipient.username} wants to send you a message.</p>
                         <div className="flex gap-3 w-full">
-                            <button onClick={async () => { await handleDeleteChat(); onBack(); }} className="flex-1 py-2 rounded-xl bg-red-500/20 text-red-500 font-bold text-sm">Delete</button>
+                            <button onClick={async () => {
+                                await fetch(`${API_URL}/reject`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ user: username, sender: recipient.username })
+                                });
+                                await handleDeleteChat();
+                                onBack();
+                                window.location.reload(); // Refresh to update sidebar
+                            }} className="flex-1 py-2 rounded-xl bg-red-500/20 text-red-500 font-bold text-sm">Delete</button>
                             <button onClick={async () => {
                                 await fetch(`${API_URL}/accept`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: username, sender: recipient.username }) });
                                 alert("Accepted!"); window.location.reload();

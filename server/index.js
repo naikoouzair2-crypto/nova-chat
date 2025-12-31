@@ -34,7 +34,9 @@ const DATA_FILE = path.join(__dirname, 'data.json');
 let users = [];
 let messages = {};
 let friends = {};
+let friends = {};
 let requests = {};
+let groups = []; // [{ id, name, members: [username...], admin: username }]
 
 // Load Data
 try {
@@ -44,7 +46,10 @@ try {
         users = data.users || [];
         messages = data.messages || {};
         friends = data.friends || {};
+        friends = data.friends || {};
         requests = data.requests || {};
+        groups = data.groups || [];
+        console.log("Data loaded from disk.");
         console.log("Data loaded from disk.");
     }
 } catch (e) {
@@ -54,7 +59,7 @@ try {
 // Save Data Helper
 const saveData = () => {
     try {
-        const data = { users, messages, friends, requests };
+        const data = { users, messages, friends, requests, groups };
         fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
     } catch (e) {
         console.error("Failed to save data:", e);
@@ -128,6 +133,30 @@ app.get('/search', (req, res) => {
     res.json(results);
 });
 
+
+// Get Friends List
+app.get('/friends/:username', (req, res) => {
+    const username = req.params.username;
+    // Map friends to full user objects if possible
+    const friendNames = friends[username] || [];
+    const friendObjects = friendNames.map(name => {
+        const u = users.find(user => user.username === name);
+        return u || { username: name, name: name, avatar: `https://api.dicebear.com/9.x/notionists/svg?seed=${name}` };
+    });
+    res.json(friendObjects);
+});
+
+// Get Requests List
+app.get('/requests/:username', (req, res) => {
+    const username = req.params.username;
+    const requestNames = requests[username] || [];
+    const requestObjects = requestNames.map(name => {
+        const u = users.find(user => user.username === name);
+        return u || { username: name, name: name, avatar: `https://api.dicebear.com/9.x/notionists/svg?seed=${name}` };
+    });
+    res.json(requestObjects);
+});
+
 // Get Messages (History)
 app.get('/messages/:room', (req, res) => {
     const room = req.params.room;
@@ -150,6 +179,15 @@ app.post('/accept', (req, res) => {
     }
 
     saveData();
+    res.json({ success: true, friend: sender });
+});
+
+app.post('/reject', (req, res) => {
+    const { user, sender } = req.body;
+    if (requests[user]) {
+        requests[user] = requests[user].filter(u => u !== sender);
+    }
+    saveData();
     res.json({ success: true });
 });
 
@@ -159,6 +197,41 @@ app.delete('/messages/:room', (req, res) => {
     io.to(room).emit('chat_cleared');
     saveData(); // <--- SAVE
     res.json({ success: true });
+});
+
+app.post('/groups', (req, res) => {
+    const { name, members, admin } = req.body;
+    const id = uuidv4();
+    // Ensure all members are valid (optional check)
+    // Add admin to members if not present
+    const uniqueMembers = [...new Set([...members, admin])];
+
+    const newGroup = {
+        id,
+        name,
+        members: uniqueMembers,
+        admin,
+        isGroup: true,
+        avatar: `https://api.dicebear.com/9.x/initials/svg?seed=${name}&backgroundColor=000000,333333`
+    };
+    groups.push(newGroup);
+
+    messages[id] = [{
+        id: uuidv4(),
+        author: "System",
+        recipient: "all",
+        message: `Group "${name}" created by ${admin}`,
+        time: new Date().toISOString(),
+        type: 'system'
+    }];
+    saveData();
+    res.json(newGroup);
+});
+
+app.get('/groups/:username', (req, res) => {
+    const { username } = req.params;
+    const userGroups = groups.filter(g => g.members.includes(username));
+    res.json(userGroups);
 });
 
 io.on('connection', (socket) => {

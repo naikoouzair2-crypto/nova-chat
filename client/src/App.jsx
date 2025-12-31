@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import JoinScreen from './components/JoinScreen';
@@ -74,7 +75,12 @@ function App() {
   };
 
   const handleSelectUser = (recipient) => {
-    const roomName = [currentUser.username, recipient.username].sort().join("_");
+    let roomName;
+    if (recipient.isGroup) {
+      roomName = recipient.id;
+    } else {
+      roomName = [currentUser.username, recipient.username].sort().join("_");
+    }
     setActiveRoom(roomName);
     setSelectedRecipient(recipient);
     socket.emit("join_room", { username: currentUser.username, room: roomName });
@@ -109,16 +115,44 @@ function App() {
   }, [currentUser]);
 
   useEffect(() => {
-    const handleNotification = (data) => {
+    // Request Permissions
+    const requestPerms = async () => {
+      if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+      }
+      try {
+        await LocalNotifications.requestPermissions();
+      } catch (e) {
+        // Not running in Capacitor environment
+      }
+    };
+    requestPerms();
+
+    const handleNotification = async (data) => {
       const isChattingWithSender = selectedRecipient && selectedRecipient.username === data.author;
       const isWindowHidden = document.hidden;
 
       if (!isChattingWithSender || isWindowHidden) {
-        if (Notification.permission === "granted") {
-          new Notification(`New message from ${data.author}`, {
-            body: data.type === 'audio' ? '🎤 Sent a voice message' : data.message,
-            icon: '/nova_chat_logo.png'
+        // Try Capacitor
+        try {
+          await LocalNotifications.schedule({
+            notifications: [{
+              title: `New message from ${data.author}`,
+              body: data.type === 'audio' ? '🎤 Sent a voice message' : data.message,
+              id: Math.floor(Math.random() * 1000000),
+              schedule: { at: new Date(Date.now() + 100) },
+              actionTypeId: "",
+              extra: null
+            }]
           });
+        } catch (e) {
+          // Fallback to Web
+          if (Notification.permission === "granted") {
+            new Notification(`New message from ${data.author}`, {
+              body: data.type === 'audio' ? '🎤 Sent a voice message' : data.message,
+              icon: '/nova_chat_logo.png'
+            });
+          }
         }
       }
     };
