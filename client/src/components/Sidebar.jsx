@@ -1,16 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Search, LogOut, Plus } from 'lucide-react';
+import { Search, LogOut, Plus, X, Camera } from 'lucide-react';
 import novaLogo from '/nova_logo_v3.jpg';
 import { API_URL } from '../config';
 
 // 3D Avatar styles matched from JoinScreen
 const getAvatarStyle = (seed) => `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,ffdfbf`;
 
+// Pre-defined seeds for avatar picker
+const AVATAR_SEEDS = ['Felix', 'Aneka', 'Zack', 'Molly', 'Leo', 'Simba', 'Nala', 'Willow', 'Jack', 'Lola'];
+
 function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [friendList, setFriendList] = useState([]);
     const [requestList, setRequestList] = useState([]);
+    const [showProfileModal, setShowProfileModal] = useState(false);
+
+    // ... rest of state
+
 
     // Fetch Lists
     useEffect(() => {
@@ -63,7 +70,10 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                     >
                         <LogOut className="w-5 h-5 text-gray-400" />
                     </button>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-[2px]">
+                    <div
+                        onClick={() => setShowProfileModal(true)}
+                        className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-[2px] cursor-pointer hover:scale-105 transition-transform"
+                    >
                         <img src={currentUser?.avatar || getAvatarStyle(currentUser?.username)} className="w-full h-full rounded-full bg-black object-cover" />
                     </div>
                 </div>
@@ -194,6 +204,55 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                 <img src="/signature.jpg" className="h-8 invert mix-blend-screen" />
             </div>
         </div>
+            {/* Profile Modal */ }
+    {
+        showProfileModal && (
+            <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-[#1a1a1a] w-full max-w-sm rounded-3xl p-6 border border-[#333] shadow-2xl relative">
+                    <button
+                        onClick={() => setShowProfileModal(false)}
+                        className="absolute top-4 right-4 p-2 bg-[#333] rounded-full hover:bg-[#444] text-white"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex flex-col items-center">
+                        <div className="relative mb-4">
+                            <img src={currentUser?.avatar} className="w-24 h-24 rounded-full border-4 border-black" />
+                            <div className="absolute bottom-0 right-0 p-1.5 bg-blue-500 rounded-full border-2 border-[#1a1a1a]">
+                                <Camera className="w-4 h-4 text-white" />
+                            </div>
+                        </div>
+                        <h2 className="text-xl font-bold text-white mb-1">{currentUser?.username}</h2>
+                        <p className="text-gray-500 text-sm mb-6">Tap below to change avatar</p>
+
+                        <div className="grid grid-cols-5 gap-2 w-full mb-6">
+                            {AVATAR_SEEDS.map((seed) => {
+                                const url = getAvatarStyle(seed);
+                                return (
+                                    <div
+                                        key={seed}
+                                        onClick={() => {
+                                            // Create new user object
+                                            const newUser = { ...currentUser, avatar: url };
+                                            // Update Local Storage
+                                            localStorage.setItem("nova_user", JSON.stringify(newUser));
+                                            // Reload to reflect changes (simplest way without global context refactor)
+                                            window.location.reload();
+                                        }}
+                                        className="aspect-square rounded-full border-2 border-transparent hover:border-blue-500 cursor-pointer overflow-hidden bg-black"
+                                    >
+                                        <img src={url} className="w-full h-full object-cover" />
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+        </div >
     );
 }
 
