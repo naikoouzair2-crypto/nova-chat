@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, ArrowRight } from 'lucide-react';
-import novaLogo from '/nova_chat_logo.png'; // Assuming I'll move the logo there
+import novaLogo from '/nova_logo_v3.jpg'; // Assuming I'll move the logo there
 import { API_URL } from '../config';
 
 const avatars = [
