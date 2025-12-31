@@ -5,21 +5,21 @@ import novaLogo from '/nova_logo_v3.jpg'; // Assuming I'll move the logo there
 import { API_URL } from '../config';
 
 const avatars = [
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Felix',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Aneka',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Zack',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Molly',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Bear',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Leo',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Simba',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Nala',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Willow',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Jack',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Lola',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Max',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Sasha',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Sam',
-    'https://api.dicebear.com/9.x/avataaars/svg?seed=Nova',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Felix&backgroundColor=ffdfbf,c0aede,b6e3f4,ffdfbf',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Aneka&backgroundColor=b6e3f4',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Zack&backgroundColor=c0aede',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Molly&backgroundColor=ffdfbf',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Bear&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Leo&backgroundColor=b6e3f4',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Simba&backgroundColor=c0aede',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Nala&backgroundColor=ffdfbf',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Willow&backgroundColor=b6e3f4',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Jack&backgroundColor=c0aede',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Lola&backgroundColor=ffdfbf',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Max&backgroundColor=b6e3f4',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Sasha&backgroundColor=c0aede',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Sam&backgroundColor=ffdfbf',
+    'https://api.dicebear.com/9.x/notionists/svg?seed=Nova&backgroundColor=b6e3f4',
 ];
 
 // ... inside JoinScreen component ...
@@ -62,7 +62,7 @@ function JoinScreen({ onJoin }) {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen w-full bg-black p-4 font-sans text-white relative overflow-hidden">
+        <div className="flex items-center justify-center min-h-[100dvh] w-full bg-black p-4 font-sans text-white relative overflow-hidden">
             {/* Background Elements */}
             <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px]" />
             <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[120px]" />
@@ -72,7 +72,7 @@ function JoinScreen({ onJoin }) {
                 animate={{ opacity: 1, scale: 1 }}
                 className="w-full max-w-md border border-[#262626] bg-[#000000] p-8 rounded-2xl relative z-10 flex flex-col items-center shadow-2xl"
             >
-                <img src={novaLogo} alt="Nova Chat" className="w-24 h-24 rounded-2xl mb-6 shadow-lg shadow-purple-500/20" />
+                <img src={novaLogo} alt="Nova Chat" className="w-32 h-32 object-contain mb-6" />
                 <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mb-2">Welcome to Nova</h1>
                 <p className="text-gray-400 text-sm mb-8">Create your identity to start chatting</p>
 

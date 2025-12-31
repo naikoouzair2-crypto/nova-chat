@@ -156,9 +156,9 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
     };
 
     return (
-        <div className="flex flex-col h-full w-full bg-black">
+        <div className="flex flex-col h-[100dvh] bg-black text-white relative overflow-hidden">
             {/* Header */}
-            <div className="h-[60px] border-b border-[#262626] flex items-center justify-between px-4 shrink-0">
+            <header className="flex items-center justify-between px-4 py-3 bg-[#0d0d0d] border-b border-[#262626] shrink-0 sticky top-0 z-20 pb-[env(safe-area-inset-top)] pt-[env(safe-area-inset-top)]">
                 <div className="flex items-center gap-3">
                     <button onClick={onBack} className="md:hidden text-white mr-2">
                         <ArrowLeft className="w-6 h-6" />
@@ -175,7 +175,7 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                     </button>
                     <Info className="w-6 h-6" />
                 </div>
-            </div>
+            </header>
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -305,7 +305,7 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 

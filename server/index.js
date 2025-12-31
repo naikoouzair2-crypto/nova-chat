@@ -169,7 +169,7 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = 3003;
+const PORT = process.env.PORT || 3003;
 server.listen(PORT, () => {
     console.log(`SERVER RUNNING ON PORT ${PORT}`);
 });
