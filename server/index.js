@@ -123,18 +123,33 @@ app.get('/search', (req, res) => {
     const results = users.filter(u =>
         u.username.toLowerCase().includes(q) ||
         (u.name && u.name.toLowerCase().includes(q)) ||
-        u.uniqueId === q
+        (u.uniqueId && String(u.uniqueId).includes(q))
     );
     res.json(results);
 });
 
+// Get Messages (History)
+app.get('/messages/:room', (req, res) => {
+    const room = req.params.room;
+    res.json(messages[room] || []);
+});
+
 app.post('/accept', (req, res) => {
     const { user, sender } = req.body;
-    addFriend(user, sender);
+
+    // Bidirectional Add
+    if (!friends[user]) friends[user] = [];
+    if (!friends[user].includes(sender)) friends[user].push(sender);
+
+    if (!friends[sender]) friends[sender] = [];
+    if (!friends[sender].includes(user)) friends[sender].push(user);
+
+    // Remove from Requests
     if (requests[user]) {
         requests[user] = requests[user].filter(u => u !== sender);
     }
-    saveData(); // <--- SAVE
+
+    saveData();
     res.json({ success: true });
 });
 
