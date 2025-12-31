@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Image, Mic, Info, ArrowLeft, Trash } from 'lucide-react';
+import { Heart, Image, Mic, Info, ArrowLeft, Trash, Check, CheckCheck } from 'lucide-react';
 
 function ChatRoom({ socket, username, room, recipient, onBack }) {
+
     const [currentMessage, setCurrentMessage] = useState("");
     const [messageList, setMessageList] = useState([]);
     const [isRecording, setIsRecording] = useState(false);
@@ -109,6 +110,8 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                 const res = await fetch(`${API_URL}/messages/${room}`);
                 const data = await res.json();
                 setMessageList(data);
+                // Mark seen immediately after fetching
+                socket.emit('mark_seen', { room, username });
             } catch (err) {
                 console.error(err);
             }
@@ -117,6 +120,12 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
 
         const handleReceiveMessage = (data) => {
             setMessageList((list) => [...list, data]);
+            // If I receive a message while in the room, I see it immediately.
+            // But 'mark_seen' is usually for the OTHER person's messages.
+            // If data.author !== username, we should emit mark_seen?
+            if (data.author !== username) {
+                socket.emit('mark_seen', { room, username });
+            }
         };
 
         const handleChatCleared = () => {
@@ -127,16 +136,27 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
             setMessageList((list) => list.filter(msg => msg.id !== id));
         };
 
+        const handleSeenUpdate = ({ room: updatedRoom }) => {
+            if (updatedRoom === room) {
+                // Simplest way: re-fetch history to get updated 'seen' flags
+                // Or update local state if we know which ones.
+                // Re-fetching is safer for now.
+                fetchHistory();
+            }
+        };
+
         socket.on("receive_message", handleReceiveMessage);
         socket.on("chat_cleared", handleChatCleared);
         socket.on("message_deleted", handleMessageDeleted);
+        socket.on("messages_seen_update", handleSeenUpdate);
 
         return () => {
             socket.off("receive_message", handleReceiveMessage);
             socket.off("chat_cleared", handleChatCleared);
             socket.off("message_deleted", handleMessageDeleted);
+            socket.off("messages_seen_update", handleSeenUpdate);
         };
-    }, [socket, room]);
+    }, [socket, room, username]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -209,8 +229,21 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                                 {isAudio ? (
                                     <audio src={msg.content} controls className="w-[200px] h-8" />
                                 ) : (
-                                    msg.message
+                                    <div className="flex flex-col">
+                                        <span>{msg.message}</span>
+                                    </div>
                                 )}
+
+                                {isMe && (
+                                    <div className="flex justify-end -mt-0.5 ml-1 inline-block float-right">
+                                        {msg.seen ? (
+                                            <CheckCheck className="w-3.5 h-3.5 text-blue-200 opacity-90" />
+                                        ) : (
+                                            <Check className="w-3.5 h-3.5 text-gray-300 opacity-70" />
+                                        )}
+                                    </div>
+                                )}
+
                                 {!isMe && !isAudio && (
                                     <div className="absolute top-1/2 -right-8 -translate-y-1/2 opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
                                         <Heart className="w-4 h-4 text-gray-500 hover:text-red-500" />

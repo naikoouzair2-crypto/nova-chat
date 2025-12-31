@@ -144,15 +144,25 @@ io.on('connection', (socket) => {
                     // Notify recipient of NEW REQUEST
                     io.to(recipient).emit('request_received', { sender: author });
                 }
-                // We still emit receive_message to the SENDER so they see it
-                // But we do NOT emit to the room (which the recipient might be capable of joining if they guessed the ID)
-                // Actually, since Join Room uses name sort, they CAN join. 
-                // But the frontend usually won't show the chat unless accepted.
-                // Let's just NOT emit to the recipient for now?
-                // Or better: emit a distinct event? or just rely on the 'request_received'.
             }
         } catch (err) {
             console.error("Error in send_message:", err);
+        }
+    });
+
+    socket.on('mark_seen', (data) => {
+        const { room, username } = data; // username is the person who SAW the messages
+        if (messages[room]) {
+            let updated = false;
+            messages[room].forEach(msg => {
+                if (msg.recipient === username && !msg.seen) { // If msg was FOR this user
+                    msg.seen = true;
+                    updated = true;
+                }
+            });
+            if (updated) {
+                io.to(room).emit('messages_seen_update', { room });
+            }
         }
     });
 

@@ -79,9 +79,12 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-black text-white font-sans overflow-hidden">
-      {/* Sidebar - Hidden on mobile if chat is open */}
-      <div className={`${selectedRecipient ? 'hidden md:flex' : 'flex'} w-full md:w-auto h-full`}>
+    <div className="flex h-[100dvh] w-full bg-black text-white font-sans overflow-hidden relative">
+      {/* Sidebar - Full width on mobile, 350px on desktop */}
+      <div className={`
+        ${selectedRecipient ? 'hidden md:flex' : 'flex'} 
+        w-full md:w-auto h-full border-r border-[#262626] z-10
+      `}>
         <Sidebar
           currentUser={currentUser}
           onSelectUser={handleSelectUser}
@@ -90,8 +93,11 @@ function App() {
         />
       </div>
 
-      {/* Chat Area */}
-      <div className={`flex-1 h-full flex flex-col ${!selectedRecipient ? 'hidden md:flex' : 'flex'}`}>
+      {/* Chat Area - Full width on mobile, remaining space on desktop */}
+      <div className={`
+        ${!selectedRecipient ? 'hidden md:flex' : 'flex'} 
+        flex-1 h-full flex-col bg-black w-full relative z-0
+      `}>
         {!selectedRecipient ? (
           // Empty State (IG Style)
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-black">
