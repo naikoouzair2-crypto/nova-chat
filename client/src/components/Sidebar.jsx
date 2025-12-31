@@ -97,16 +97,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
             {!searchTerm && (
                 <div className="mb-6 pl-6 overflow-x-auto no-scrollbar scroll-smooth">
                     <div className="flex gap-4 pr-6">
-                        {/* My Story (Mock) */}
-                        <div className="flex flex-col items-center gap-1 shrink-0">
-                            <div className="relative w-[70px] h-[70px]">
-                                <div className="absolute inset-0 rounded-full border-2 border-dashed border-gray-700"></div>
-                                <div className="absolute inset-1 rounded-full bg-[#262626] flex items-center justify-center">
-                                    <Plus className="w-6 h-6 text-white" />
-                                </div>
-                            </div>
-                            <span className="text-xs font-medium text-gray-400">Your Story</span>
-                        </div>
+
 
                         {/* Requests as Stories */}
                         {requestList.map((user) => (

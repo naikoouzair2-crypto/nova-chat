@@ -39,13 +39,12 @@ function JoinScreen({ onJoin }) {
                 transition={{ duration: 0.5 }}
                 className="w-full max-w-sm px-6 relative z-10 flex flex-col items-center"
             >
-                {/* Logo & Title */}
                 <div className="flex flex-col items-center mb-8">
                     <img
-                        src={novaLogo}
+                        src="/nova_logo_transparent.png"
                         alt="Nova Chat"
-                        className="w-20 h-20 mb-4 object-contain drop-shadow-2xl"
-                        style={{ filter: "drop-shadow(0 0 15px rgba(59, 130, 246, 0.5))" }}
+                        className="w-32 h-32 mb-4 object-contain"
+                        style={{ filter: "drop-shadow(0 0 20px rgba(59, 130, 246, 0.4))" }}
                     />
                     <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 tracking-tight">
                         Nova Chat
