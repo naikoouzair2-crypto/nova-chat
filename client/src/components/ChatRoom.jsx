@@ -201,9 +201,7 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                     </div>
                 ) : (
                     <div className="flex items-center gap-2 bg-[#1a1a1a] rounded-full px-2 py-2 pl-4 border border-[#262626] focus-within:border-blue-500/50 transition-colors">
-                        <div className="p-2 bg-blue-500/10 rounded-full">
-                            <Image className="w-5 h-5 text-blue-500" />
-                        </div>
+                        <div className="p-2 ml-[1px]"></div>
                         <input
                             type="text"
                             value={currentMessage}
