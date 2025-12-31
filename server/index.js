@@ -151,20 +151,18 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ...
-});
 
-socket.on('delete_message', (data) => {
-    const { room, id } = data;
-    if (messages[room]) {
-        messages[room] = messages[room].filter(msg => msg.id !== id);
-        io.to(room).emit('message_deleted', id);
-    }
-});
+    socket.on('delete_message', (data) => {
+        const { room, id } = data;
+        if (messages[room]) {
+            messages[room] = messages[room].filter(msg => msg.id !== id);
+            io.to(room).emit('message_deleted', id);
+        }
+    });
 
-socket.on('disconnect', () => {
-    console.log('User Disconnected', socket.id);
-});
+    socket.on('disconnect', () => {
+        console.log('User Disconnected', socket.id);
+    });
 });
 
 const PORT = process.env.PORT || 3003;
