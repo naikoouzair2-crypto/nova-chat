@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, LogOut, Plus, X, Camera } from 'lucide-react';
-import novaLogo from '/nova_logo_v3.jpg';
+
 import { API_URL } from '../config';
 
 // 3D Avatar styles matched from JoinScreen
