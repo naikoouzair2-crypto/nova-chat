@@ -85,8 +85,8 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                     <Search className="absolute left-4 top-3.5 w-5 h-5 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
                     <input
                         type="text"
-                        placeholder="Search for friends..."
-                        className="w-full bg-[#121212] rounded-2xl py-3 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                        placeholder="Search Name, @username, or ID..."
+                        className="w-full bg-[#121212] rounded-2xl py-3 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-all font-medium"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -97,7 +97,6 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
             {!searchTerm && (
                 <div className="mb-6 pl-6 overflow-x-auto no-scrollbar scroll-smooth">
                     <div className="flex gap-4 pr-6">
-
 
                         {/* Requests as Stories */}
                         {requestList.map((user) => (
@@ -111,7 +110,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                         <img src={user.avatar} className="w-full h-full rounded-full object-cover" />
                                     </div>
                                 </div>
-                                <span className="text-xs font-medium text-white max-w-[70px] truncate">{user.username}</span>
+                                <span className="text-xs font-medium text-white max-w-[70px] truncate">{user.name || user.username}</span>
                             </div>
                         ))}
 
@@ -127,7 +126,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                         <img src={user.avatar} className="w-full h-full rounded-full object-cover" />
                                     </div>
                                 </div>
-                                <span className="text-xs font-medium text-gray-300 max-w-[70px] truncate">{user.username}</span>
+                                <span className="text-xs font-medium text-gray-300 max-w-[70px] truncate">{user.name || user.username}</span>
                             </div>
                         ))}
                     </div>
@@ -146,8 +145,8 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                             >
                                 <img src={user.avatar} className="w-14 h-14 rounded-full bg-[#262626]" />
                                 <div>
-                                    <h3 className="text-white font-bold">{user.username}</h3>
-                                    <span className="text-blue-400 text-sm font-medium">Tap to message</span>
+                                    <h3 className="text-white font-bold">{user.name || user.username}</h3>
+                                    <span className="text-gray-400 text-xs">@{user.username} • ID: {user.uniqueId}</span>
                                 </div>
                             </div>
                         ))}
@@ -171,7 +170,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-baseline mb-0.5">
-                                            <h3 className={`font-bold truncate text-base ${isSelected ? 'text-blue-400' : 'text-white'}`}>{user.username}</h3>
+                                            <h3 className={`font-bold truncate text-base ${isSelected ? 'text-blue-400' : 'text-white'}`}>{user.name || user.username}</h3>
                                             <span className="text-xs text-gray-500 font-medium">Now</span>
                                         </div>
                                         <p className="text-gray-400 text-sm truncate">Tap to open chat</p>
@@ -214,8 +213,13 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                         <Camera className="w-4 h-4 text-white" />
                                     </div>
                                 </div>
-                                <h2 className="text-xl font-bold text-white mb-1">{currentUser?.username}</h2>
-                                <p className="text-gray-500 text-sm mb-6">Tap below to change avatar</p>
+                                <h2 className="text-xl font-bold text-white mb-0">{currentUser?.name || currentUser?.username}</h2>
+                                <p className="text-blue-400 font-medium">@{currentUser?.username}</p>
+                                <div className="bg-[#262626] px-3 py-1 rounded-full mt-2 mb-6 border border-[#333]">
+                                    <p className="text-xs text-gray-400 font-mono tracking-widest">ID: {currentUser?.uniqueId || '---'}</p>
+                                </div>
+
+                                <p className="text-gray-500 text-sm mb-4">Tap avatar to change styling</p>
 
                                 <div className="grid grid-cols-5 gap-2 w-full mb-6">
                                     {AVATAR_SEEDS.map((seed) => {

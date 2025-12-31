@@ -51,21 +51,25 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleLogin = async (user) => {
+  const handleLogin = async (userData) => {
     // Register user on server to ensure they are searchable
     try {
-      await fetch(`${API_URL}/register`, {
+      const res = await fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(user)
+        body: JSON.stringify(userData)
       });
-      setCurrentUser(user);
-      localStorage.setItem("nova_user", JSON.stringify(user));
+      const finalUser = await res.json();
+
+      // Use the data from server (which has uniqueId)
+      setCurrentUser(finalUser);
+      localStorage.setItem("nova_user", JSON.stringify(finalUser));
     } catch (e) {
       console.error("Registration failed:", e);
-      // Fallback: still log them in locally so they can retry or use existing session
-      setCurrentUser(user);
-      localStorage.setItem("nova_user", JSON.stringify(user));
+      // Fallback: This is risky if server is down, but we hope next load fixes it
+      // Ideally we show an error, but let's allow access for now
+      setCurrentUser(userData);
+      localStorage.setItem("nova_user", JSON.stringify(userData));
     }
   };
 

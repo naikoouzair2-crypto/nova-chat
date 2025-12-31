@@ -75,21 +75,58 @@ const saveWrapper = (fn) => {
 // ... 
 
 // Update Register to Save
+
+// Generate 6-digit numeric ID
+const generateId = () => Math.floor(100000 + Math.random() * 900000).toString();
+
 app.post('/register', (req, res) => {
-    const { username, avatar } = req.body;
-    const user = { username, avatar, status: "Active" };
-    const existingIdx = users.findIndex(u => u.username === username);
-    if (existingIdx >= 0) {
-        users[existingIdx] = user;
-    } else {
-        users.push(user);
+    const { username, name, avatar } = req.body;
+
+    // Check if username already exists (and it's not the same user logging in again)
+    const existingUser = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+
+    if (existingUser) {
+        // If it's a login attempt (same username), return existing user data
+        // For strict registration, we might want to return an error, but for this app's flow, 
+        // we'll update the name/avatar and return the existing user (preserving their ID)
+        existingUser.name = name;
+        existingUser.avatar = avatar;
+        saveData();
+        return res.json(existingUser);
     }
-    console.log("Registered:", user);
-    saveData(); // <--- SAVE
-    res.json(user);
+
+    // Create New User
+    let newId = generateId();
+    // Ensure ID is unique
+    while (users.find(u => u.uniqueId === newId)) {
+        newId = generateId();
+    }
+
+    const newUser = {
+        username,
+        name,
+        avatar,
+        uniqueId: newId,
+        status: "Active"
+    };
+
+    users.push(newUser);
+    console.log("Registered New User:", newUser);
+    saveData();
+    res.json(newUser);
 });
 
-// ... (Search and Getters don't need changes) ...
+app.get('/search', (req, res) => {
+    const q = (req.query.q || "").toLowerCase();
+    if (!q) return res.json([]);
+
+    const results = users.filter(u =>
+        u.username.toLowerCase().includes(q) ||
+        (u.name && u.name.toLowerCase().includes(q)) ||
+        u.uniqueId === q
+    );
+    res.json(results);
+});
 
 app.post('/accept', (req, res) => {
     const { user, sender } = req.body;
