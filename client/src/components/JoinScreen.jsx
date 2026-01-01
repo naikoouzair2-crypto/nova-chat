@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import novaLogo from '/nova_logo_v3.jpg';
 
-// Premium 3D Avatars (Colorful 'Adventurer' Style)
+// Premium 3D Avatars (Colorful 'Adventurer' Style) - UPGRADED TO 20
 const avatars = [
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Felix&backgroundColor=b6e3f4,c0aede,ffdfbf',
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Aneka&backgroundColor=ffdfbf,c0aede',
@@ -16,10 +15,15 @@ const avatars = [
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Jack&backgroundColor=c0aede,b6e3f4',
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Lola&backgroundColor=ffdfbf,c0aede',
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Oliver&backgroundColor=b6e3f4,ffdfbf',
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Bella&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Bella&backgroundColor=ffdfbf,c0aede', // 12
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Max&backgroundColor=c0aede,b6e3f4',
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Lucy&backgroundColor=ffdfbf,c0aede',
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Charlie&backgroundColor=b6e3f4,ffdfbf',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Daisy&backgroundColor=ffdfbf,c0aede', // 16
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Oscar&backgroundColor=c0aede,b6e3f4',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Luna&backgroundColor=ffdfbf,b6e3f4',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Milo&backgroundColor=b6e3f4,c0aede',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Sophie&backgroundColor=c0aede,ffdfbf', // 20
 ];
 
 
@@ -57,21 +61,28 @@ function JoinScreen({ onJoin }) {
 
         if (mode === 'login') {
             // Skip avatar step for login
-            handleJoin(cleanUsername);
+            handleJoinInternal(cleanUsername);
         } else {
             setStep(2);
         }
     };
 
-    const handleJoin = async (finalUsername) => {
+    /**
+     * Internal handler to ensure no event objects are passed from onClick.
+     * @param {string|null} fastTrackUsername - Optional username to use directly (for login)
+     */
+    const handleJoinInternal = async (fastTrackUsername = null) => {
         setIsJoining(true); // Show loader
         // Simulate delay
         await new Promise(r => setTimeout(r, 800));
 
-        // Pass all data including password and mode
+        // CRITICAL FIX: Ensure 'fastTrackUsername' is a string or null, never an event object
+        const finalUsername = (typeof fastTrackUsername === 'string') ? fastTrackUsername : username;
+
+        // Pass all data including password and mode. Guard against circular objects.
         onJoin({
             name: name.trim(),
-            username: typeof finalUsername === 'string' ? finalUsername : username,
+            username: finalUsername,
             avatar: selectedAvatar,
             password,
             mode
@@ -160,7 +171,17 @@ function JoinScreen({ onJoin }) {
                             onClick={handleNext}
                             className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 mt-4"
                         >
-                            Next <ArrowRight className="w-4 h-4" />
+                            {mode === 'register' ? 'Next' : 'Login'} <ArrowRight className="w-4 h-4" />
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setMode(mode === 'register' ? 'login' : 'register');
+                                setError("");
+                            }}
+                            className="w-full text-center text-sm text-gray-500 hover:text-white transition-colors underline pt-2"
+                        >
+                            {mode === 'register' ? "Already have an account? Login" : "New to Nova? Create Account"}
                         </button>
                     </motion.div>
                 ) : (
@@ -194,7 +215,7 @@ function JoinScreen({ onJoin }) {
                         </div>
 
                         <button
-                            onClick={() => handleJoin()}
+                            onClick={() => handleJoinInternal()}
                             disabled={isJoining}
                             className="w-full bg-white text-black font-extrabold text-lg py-4 rounded-xl hover:bg-gray-100 disabled:opacity-70 disabled:cursor-wait transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] relative"
                         >
@@ -205,23 +226,13 @@ function JoinScreen({ onJoin }) {
                                 </>
                             ) : (
                                 <>
-                                    <span>{mode === 'register' ? 'Join Nova' : 'Login'}</span>
+                                    <span>Join Nova</span>
                                     <ArrowRight className="w-5 h-5" />
                                 </>
                             )}
                         </button>
                     </motion.div>
                 )}
-
-                <button
-                    onClick={() => {
-                        setMode(mode === 'register' ? 'login' : 'register');
-                        setError("");
-                    }}
-                    className="w-full mt-4 text-sm text-gray-500 hover:text-white transition-colors underline"
-                >
-                    {mode === 'register' ? "Already have an account? Login" : "New to Nova? Create Account"}
-                </button>
             </motion.div>
 
             {/* Footer */}
