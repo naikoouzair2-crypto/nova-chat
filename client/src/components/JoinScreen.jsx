@@ -71,7 +71,7 @@ function JoinScreen({ onJoin }) {
         // Pass all data including password and mode
         onJoin({
             name: name.trim(),
-            username: finalUsername || username,
+            username: typeof finalUsername === 'string' ? finalUsername : username,
             avatar: selectedAvatar,
             password,
             mode
@@ -194,7 +194,7 @@ function JoinScreen({ onJoin }) {
                         </div>
 
                         <button
-                            onClick={handleJoin}
+                            onClick={() => handleJoin()}
                             disabled={isJoining}
                             className="w-full bg-white text-black font-extrabold text-lg py-4 rounded-xl hover:bg-gray-100 disabled:opacity-70 disabled:cursor-wait transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] relative"
                         >
@@ -210,18 +210,18 @@ function JoinScreen({ onJoin }) {
                                 </>
                             )}
                         </button>
-
-                        <button
-                            onClick={() => {
-                                setMode(mode === 'register' ? 'login' : 'register');
-                                setError("");
-                            }}
-                            className="w-full mt-4 text-sm text-gray-500 hover:text-white transition-colors underline"
-                        >
-                            {mode === 'register' ? "Already have an account? Login" : "New to Nova? Create Account"}
-                        </button>
                     </motion.div>
                 )}
+
+                <button
+                    onClick={() => {
+                        setMode(mode === 'register' ? 'login' : 'register');
+                        setError("");
+                    }}
+                    className="w-full mt-4 text-sm text-gray-500 hover:text-white transition-colors underline"
+                >
+                    {mode === 'register' ? "Already have an account? Login" : "New to Nova? Create Account"}
+                </button>
             </motion.div>
 
             {/* Footer */}
