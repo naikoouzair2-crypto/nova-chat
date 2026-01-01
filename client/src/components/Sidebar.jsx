@@ -18,7 +18,8 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
     const [groupList, setGroupList] = useState([]);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showGroupModal, setShowGroupModal] = useState(false);
-    const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'requests'
+    const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'requests' | 'add'
+    const [isSearching, setIsSearching] = useState(false);
 
     // Group Creation State
     const [newGroupName, setNewGroupName] = useState("");
@@ -58,21 +59,32 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
         return () => clearInterval(interval);
     }, [currentUser]);
 
-    // Search
+    // Search Logic
     useEffect(() => {
-        const delayDebounceFn = setTimeout(async () => {
-            if (searchTerm) {
-                try {
-                    const res = await fetch(`${API_URL}/search?q=${searchTerm}`);
-                    const data = await res.json();
-                    setSearchResults(data.filter(u => u.username !== currentUser.username));
-                } catch (err) { console.error(err); }
-            } else {
-                setSearchResults([]);
-            }
-        }, 300);
-        return () => clearTimeout(delayDebounceFn);
-    }, [searchTerm, currentUser]);
+        // If we are in 'chats' or 'requests', search is local filter.
+        // If we are in 'add', search is global API call.
+
+        if (activeTab === 'add') {
+            const delayDebounceFn = setTimeout(async () => {
+                if (searchTerm && searchTerm.length >= 2) {
+                    setIsSearching(true);
+                    try {
+                        const res = await fetch(`${API_URL}/search?q=${searchTerm}`);
+                        const data = await res.json();
+                        setSearchResults(data.filter(u => u.username !== currentUser.username));
+                    } catch (err) { console.error(err); }
+                    setIsSearching(false);
+                } else {
+                    setSearchResults([]);
+                    setIsSearching(false);
+                }
+            }, 500); // 500ms debounce
+            return () => clearTimeout(delayDebounceFn);
+        } else {
+            // Local filter logic handled in render
+            setIsSearching(false);
+        }
+    }, [searchTerm, activeTab, currentUser]);
 
     const handleCreateGroup = async () => {
         if (!newGroupName.trim()) return toastRef.current.error("Please enter a group name");
@@ -151,38 +163,56 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                         className="w-full bg-[#161616] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-medium"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-[#161616] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-medium"
                     />
+                    {isSearching && (
+                        <div className="absolute right-3 top-3.5 w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    )}
                 </div>
             </div>
 
             {/* Custom Tab Navigation */}
-            <div className="flex mx-6 bg-[#161616] p-1 rounded-xl mb-4">
+            <div className="flex mx-6 bg-[#161616] p-1 rounded-xl mb-4 text-[10px] font-bold tracking-wide">
                 <button
-                    onClick={() => setActiveTab('chats')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'chats' ? 'bg-[#262626] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                    onClick={() => { setActiveTab('chats'); setSearchTerm(""); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all ${activeTab === 'chats' ? 'bg-[#262626] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
                 >
                     <MessageCircle className="w-3.5 h-3.5" />
                     <span>CHATS</span>
                 </button>
                 <button
-                    onClick={() => setActiveTab('requests')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'requests' ? 'bg-[#262626] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                    onClick={() => { setActiveTab('requests'); setSearchTerm(""); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all ${activeTab === 'requests' ? 'bg-[#262626] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
                 >
-                    <div className="relative flex items-center gap-2">
+                    <div className="relative flex items-center gap-1.5">
                         <UserCheck className="w-3.5 h-3.5" />
-                        <span>REQUESTS</span>
+                        <span>REQS</span>
                         {requestList.length > 0 && (
-                            <span className="bg-red-500 text-white text-[9px] px-1.5 py-0 rounded-full">{requestList.length}</span>
+                            <span className="bg-red-500 text-white text-[9px] px-1 py-0 rounded-full min-w-[14px] flex justify-center">{requestList.length}</span>
                         )}
                     </div>
+                </button>
+                <button
+                    onClick={() => { setActiveTab('add'); setSearchTerm(""); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all ${activeTab === 'add' ? 'bg-[#262626] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>ADD</span>
                 </button>
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
-                {searchTerm ? (
-                    /* Search Results */
+            <div className="flex-1 overflow-y-auto px-4 pb-24">
+                {activeTab === 'add' ? (
+                    /* Add / Global Search Tab */
                     <div className="space-y-2">
+                        {searchTerm.length < 2 && (
+                            <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                                <Search className="w-12 h-12 text-gray-500 mb-2" />
+                                <p className="text-gray-500 text-sm">Type name to search global users</p>
+                            </div>
+                        )}
+
                         {searchResults.map((user) => {
                             // Check status
                             const isFriend = friendList.some(f => f.username === user.username);
@@ -199,7 +229,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                         <span className="text-gray-500 text-xs truncate">@{user.username}</span>
                                     </div>
                                     {isFriend ? (
-                                        <button onClick={() => { setSearchTerm(""); onSelectUser(user); }} className="bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-blue-500/20">Chat</button>
+                                        <button onClick={() => { setSearchTerm(""); setActiveTab('chats'); onSelectUser(user); }} className="bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-blue-500/20">Chat</button>
                                     ) : (
                                         isRequested ? (
                                             <button disabled className="bg-[#222] text-gray-500 px-3 py-1.5 rounded-full text-xs font-bold cursor-default">Sent</button>
@@ -223,10 +253,12 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                 </div>
                             )
                         })}
-                        {searchResults.length === 0 && <p className="text-gray-600 text-center text-xs mt-8">No users found.</p>}
+                        {searchTerm.length >= 2 && searchResults.length === 0 && !isSearching && (
+                            <p className="text-gray-600 text-center text-xs mt-8">No users found.</p>
+                        )}
                     </div>
                 ) : (
-                    /* Main Lists */
+                    /* Main Lists (Chats & Requests) */
                     <div className="space-y-1">
                         {activeTab === 'requests' ? (
                             <div className="space-y-2 animate-in fade-in duration-300">
@@ -255,69 +287,87 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                             </div>
                         ) : (
                             <div className="space-y-1 animate-in fade-in duration-300">
-                                {/* Groups Section */}
-                                {groupList.length > 0 && <p className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 mt-2">Groups ({groupList.length})</p>}
-                                {groupList.map((group) => (
-                                    <div
-                                        key={group.id}
-                                        onClick={() => onSelectUser(group)}
-                                        className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${selectedUser?.id === group.id ? 'bg-[#222] border-l-2 border-blue-500' : 'hover:bg-[#161616] border-l-2 border-transparent'}`}
-                                    >
-                                        <div className="relative shrink-0">
-                                            <img src={group.avatar} className="w-11 h-11 rounded-full bg-[#262626] object-cover" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="text-white font-bold text-sm truncate">{group.name}</h3>
-                                            <span className="text-gray-500 text-xs">{group.members.length} members</span>
-                                        </div>
-                                    </div>
-                                ))}
+                                {/* Chats Tab */}
 
-                                {/* Friends Section */}
-                                {friendList.length > 0 && <p className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 mt-4">Direct Messages</p>}
-                                {friendList.map((user) => {
-                                    const isSelected = selectedUser?.username === user.username;
+                                {/* Filtered Lists Logic */}
+                                {(() => {
+                                    const filteredFriends = friendList.filter(u => u.username.toLowerCase().includes(searchTerm.toLowerCase()) || (u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase())));
+                                    const filteredGroups = groupList.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+                                    const isEmpty = filteredFriends.length === 0 && filteredGroups.length === 0;
+
+                                    if (isEmpty && searchTerm) {
+                                        return <p className="text-gray-600 text-center text-xs mt-8">No chats found.</p>;
+                                    }
+
                                     return (
-                                        <div
-                                            key={user.username}
-                                            onClick={() => onSelectUser(user)}
-                                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${isSelected ? 'bg-[#222]' : 'hover:bg-[#161616]'}`}
-                                        >
-                                            <div className="relative shrink-0">
-                                                <img src={user.avatar} className="w-11 h-11 rounded-full bg-[#262626] object-cover" />
-                                                <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-black rounded-full ${user.unreadCount > 0 ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex justify-between items-center mb-0.5">
-                                                    <h3 className={`font-bold text-sm truncate ${isSelected ? 'text-blue-400' : 'text-white'}`}>{user.name || user.username}</h3>
-                                                    {user.unreadCount > 0 && (
-                                                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{user.unreadCount}</span>
-                                                    )}
+                                        <>
+                                            {/* Groups Section */}
+                                            {filteredGroups.length > 0 && <p className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 mt-2">Groups ({filteredGroups.length})</p>}
+                                            {filteredGroups.map((group) => (
+                                                <div
+                                                    key={group.id}
+                                                    onClick={() => onSelectUser(group)}
+                                                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${selectedUser?.id === group.id ? 'bg-[#222] border-l-2 border-blue-500' : 'hover:bg-[#161616] border-l-2 border-transparent'}`}
+                                                >
+                                                    <div className="relative shrink-0">
+                                                        <img src={group.avatar} className="w-11 h-11 rounded-full bg-[#262626] object-cover" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="text-white font-bold text-sm truncate">{group.name}</h3>
+                                                        <span className="text-gray-500 text-xs">{group.members.length} members</span>
+                                                    </div>
                                                 </div>
-                                                <p className={`text-xs truncate ${user.unreadCount > 0 ? 'text-white font-bold' : 'text-gray-500'}`}>
-                                                    {user.lastMessage ? (
-                                                        <>
-                                                            {user.lastMessage.author === currentUser.username && <span className="text-blue-400">You: </span>}
-                                                            {user.lastMessage.content}
-                                                        </>
-                                                    ) : (
-                                                        "Tap to chat"
-                                                    )}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                            ))}
 
-                                {friendList.length === 0 && groupList.length === 0 && (
-                                    <div className="text-center py-12 px-4">
-                                        <div className="w-16 h-16 bg-[#1a1a1a] rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <Search className="w-6 h-6 text-gray-600" />
-                                        </div>
-                                        <h3 className="text-white font-bold text-sm mb-1">No chats yet</h3>
-                                        <p className="text-gray-500 text-xs">Search for your friends to start chatting!</p>
-                                    </div>
-                                )}
+                                            {/* Friends Section */}
+                                            {filteredFriends.length > 0 && <p className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 mt-4">Direct Messages</p>}
+                                            {filteredFriends.map((user) => {
+                                                const isSelected = selectedUser?.username === user.username;
+                                                return (
+                                                    <div
+                                                        key={user.username}
+                                                        onClick={() => onSelectUser(user)}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${isSelected ? 'bg-[#222]' : 'hover:bg-[#161616]'}`}
+                                                    >
+                                                        <div className="relative shrink-0">
+                                                            <img src={user.avatar} className="w-11 h-11 rounded-full bg-[#262626] object-cover" />
+                                                            <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-black rounded-full ${user.unreadCount > 0 ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex justify-between items-center mb-0.5 gap-2">
+                                                                <h3 className={`font-bold text-sm truncate flex-1 min-w-0 ${isSelected ? 'text-blue-400' : 'text-white'}`}>{user.name || user.username}</h3>
+                                                                {user.unreadCount > 0 && (
+                                                                    <span className="shrink-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{user.unreadCount}</span>
+                                                                )}
+                                                            </div>
+                                                            <p className={`text-xs truncate ${user.unreadCount > 0 ? 'text-white font-bold' : 'text-gray-500'}`}>
+                                                                {user.lastMessage ? (
+                                                                    <>
+                                                                        {user.lastMessage.author === currentUser.username && <span className="text-blue-400">You: </span>}
+                                                                        {user.lastMessage.content}
+                                                                    </>
+                                                                ) : (
+                                                                    "Tap to chat"
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+
+                                            {isEmpty && !searchTerm && (
+                                                <div className="text-center py-12 px-4">
+                                                    <div className="w-16 h-16 bg-[#1a1a1a] rounded-full flex items-center justify-center mx-auto mb-4">
+                                                        <MessageCircle className="w-6 h-6 text-gray-600" />
+                                                    </div>
+                                                    <h3 className="text-white font-bold text-sm mb-1">No chats yet</h3>
+                                                    <p className="text-gray-500 text-xs">Switch to the 'ADD' tab to find people!</p>
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </div>
                         )}
                     </div>

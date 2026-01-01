@@ -22,9 +22,12 @@ const avatars = [
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Charlie&backgroundColor=b6e3f4,ffdfbf',
 ];
 
+
 function JoinScreen({ onJoin }) {
+    const [mode, setMode] = useState('register'); // 'register' | 'login'
     const [name, setName] = useState("");
     const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
     const [error, setError] = useState(""); // For validation feedback
     const [step, setStep] = useState(1);
     const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
@@ -32,10 +35,16 @@ function JoinScreen({ onJoin }) {
     const [isJoining, setIsJoining] = useState(false);
 
     const handleNext = async () => {
-        if (!name.trim() || !username.trim()) {
-            setError("Please fill in all fields.");
+        if (!username.trim() || !password.trim()) {
+            setError("Please fill in username and password.");
             return;
         }
+
+        if (mode === 'register' && !name.trim()) {
+            setError("Please fill in display name.");
+            return;
+        }
+
         // Normalize username: remove spaces, lowercase
         const cleanUsername = username.trim().toLowerCase().replace(/\s+/g, '');
         if (cleanUsername.length < 3) {
@@ -45,17 +54,33 @@ function JoinScreen({ onJoin }) {
 
         setError("");
         setUsername(cleanUsername); // Update state to clean version
-        setStep(2);
+
+        if (mode === 'login') {
+            // Skip avatar step for login
+            handleJoin(cleanUsername);
+        } else {
+            setStep(2);
+        }
     };
 
-    const handleJoin = async () => {
-        if (selectedAvatar) {
-            setIsJoining(true); // Show loader
-            // Simulate delay for effect or wait for parent callback
-            await new Promise(r => setTimeout(r, 800));
-            onJoin({ name: name.trim(), username, avatar: selectedAvatar });
-            // Keep loader true until unmount
-        }
+    const handleJoin = async (finalUsername) => {
+        setIsJoining(true); // Show loader
+        // Simulate delay
+        await new Promise(r => setTimeout(r, 800));
+
+        // Pass all data including password and mode
+        onJoin({
+            name: name.trim(),
+            username: finalUsername || username,
+            avatar: selectedAvatar,
+            password,
+            mode
+        });
+
+        // Loader stays until parent handles it or unmounts
+        // Usually parent will set error if failed, so we might need a way to reset isJoining there?
+        // simple hack: set timeout to turn off loader if it takes too long (error case)
+        setTimeout(() => setIsJoining(false), 5000);
     };
 
     return (
@@ -89,17 +114,19 @@ function JoinScreen({ onJoin }) {
                         exit={{ x: -50, opacity: 0 }}
                     >
                         <div className="space-y-4">
-                            <div>
-                                <label className="text-xs text-gray-500 uppercase font-bold tracking-wider ml-1">Display Name</label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-[#111] border border-[#333] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors mt-1"
-                                    placeholder="e.g. Neo Anderson"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleNext()}
-                                />
-                            </div>
+                            {mode === 'register' && (
+                                <div>
+                                    <label className="text-xs text-gray-500 uppercase font-bold tracking-wider ml-1">Display Name</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-[#111] border border-[#333] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors mt-1"
+                                        placeholder="e.g. Neo Anderson"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleNext()}
+                                    />
+                                </div>
+                            )}
 
                             <div>
                                 <label className="text-xs text-gray-500 uppercase font-bold tracking-wider ml-1">Username (Unique ID)</label>
@@ -112,6 +139,18 @@ function JoinScreen({ onJoin }) {
                                     onKeyDown={(e) => e.key === 'Enter' && handleNext()}
                                 />
                                 <p className="text-[10px] text-gray-500 mt-1 ml-1">This will be your unique handle.</p>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-500 uppercase font-bold tracking-wider ml-1">Password</label>
+                                <input
+                                    type="password"
+                                    className="w-full bg-[#111] border border-[#333] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 transition-colors mt-1"
+                                    placeholder="Secret Password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleNext()}
+                                />
                             </div>
 
                             {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
@@ -166,10 +205,20 @@ function JoinScreen({ onJoin }) {
                                 </>
                             ) : (
                                 <>
-                                    <span>Enter Nova</span>
+                                    <span>{mode === 'register' ? 'Join Nova' : 'Login'}</span>
                                     <ArrowRight className="w-5 h-5" />
                                 </>
                             )}
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setMode(mode === 'register' ? 'login' : 'register');
+                                setError("");
+                            }}
+                            className="w-full mt-4 text-sm text-gray-500 hover:text-white transition-colors underline"
+                        >
+                            {mode === 'register' ? "Already have an account? Login" : "New to Nova? Create Account"}
                         </button>
                     </motion.div>
                 )}

@@ -38,24 +38,41 @@ function App() {
   }, [currentUser, showSplash]);
 
   const handleLogin = async (userData) => {
-    // Register user on server to ensure they are searchable
+    // userData contains { username, password, mode, ... }
     try {
-      const res = await fetch(`${API_URL}/register`, {
+      let endpoint = '/register';
+      if (userData.mode === 'login') {
+        endpoint = '/login';
+      }
+
+      const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       });
-      const finalUser = await res.json();
 
-      // Use the data from server (which has uniqueId)
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Authentication failed");
+      }
+
+      // If login successful, we have the user object
+      // We should also persist the password locally (insecure but requested) 
+      // so we can re-auth silently on refresh?? 
+      // Actually, silent re-auth usually uses a token. 
+      // Since we don't have tokens yet, the existing code relies on 'username' in localStorage.
+      // We will now store the full object.
+
+      // Merge password into the object if it's missing from response (it likely is for security, though our server sends it back currently if asked)
+      const finalUser = { ...data, password: userData.password }; // Store pwd for silent re-auth
+
       setCurrentUser(finalUser);
       localStorage.setItem("nova_user", JSON.stringify(finalUser));
     } catch (e) {
-      console.error("Registration failed:", e);
-      // Fallback: This is risky if server is down, but we hope next load fixes it
-      // Ideally we show an error, but let's allow access for now
-      setCurrentUser(userData);
-      localStorage.setItem("nova_user", JSON.stringify(userData));
+      console.error("Auth failed:", e);
+      alert(e.message); // Simple alert for now, or we could pass error back to JoinScreen
+      // Do NOT set current user
     }
   };
 
@@ -97,18 +114,23 @@ function App() {
       // Run immediately in case already connected
       if (socket.connected) login();
 
-      // Re-register silently on app load to ensure server knows about us AND to get fresh data (like ID)
-      fetch(`${API_URL}/register`, {
+      // Re-register / Re-login silently on app load
+      // Ideally we use a token. For now, we use the stored password.
+      const endpoint = currentUser.password ? '/login' : '/register';
+
+      fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentUser)
       })
         .then(res => res.json())
         .then(freshUser => {
-          if (freshUser && freshUser.uniqueId) {
+          if (freshUser && (freshUser.uniqueId || freshUser.username)) {
             console.log("Synced user data from server:", freshUser);
-            setCurrentUser(freshUser);
-            localStorage.setItem("nova_user", JSON.stringify(freshUser));
+            // Update local storage but keep password if server didn't send it back (it usually doesn't in a real app, but here it might)
+            const updated = { ...freshUser, password: currentUser.password || freshUser.password };
+            setCurrentUser(updated);
+            localStorage.setItem("nova_user", JSON.stringify(updated));
           }
         })
         .catch(console.error);

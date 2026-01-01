@@ -59,7 +59,9 @@ const User = sequelize.define('User', {
     avatar: DataTypes.STRING,
     uniqueId: { type: DataTypes.STRING, unique: true },
     status: { type: DataTypes.STRING, defaultValue: "Active" },
-    fcmToken: { type: DataTypes.STRING } // For Firebase
+    status: { type: DataTypes.STRING, defaultValue: "Active" },
+    fcmToken: { type: DataTypes.STRING }, // For Firebase
+    password: { type: DataTypes.STRING } // Plaintext for simplicity now, but obviously hash in prod
 });
 
 const Friend = sequelize.define('Friend', {
@@ -105,12 +107,18 @@ sequelize.sync({ alter: true })
     .then(async () => {
         console.log('TiDB/MySQL Database Synced');
         try {
-            const [results] = await sequelize.query("SHOW COLUMNS FROM Users LIKE 'fcmToken'");
-            if (results.length === 0) {
+            // Check for fcmToken
+            const [resultsFcm] = await sequelize.query("SHOW COLUMNS FROM Users LIKE 'fcmToken'");
+            if (resultsFcm.length === 0) {
                 await sequelize.query("ALTER TABLE Users ADD COLUMN fcmToken VARCHAR(255) NULL;");
                 console.log("Successfully added 'fcmToken' column.");
-            } else {
-                console.log("'fcmToken' column already exists.");
+            }
+
+            // Check for password
+            const [resultsPwd] = await sequelize.query("SHOW COLUMNS FROM Users LIKE 'password'");
+            if (resultsPwd.length === 0) {
+                await sequelize.query("ALTER TABLE Users ADD COLUMN password VARCHAR(255) NULL;");
+                console.log("Successfully added 'password' column.");
             }
         } catch (e) {
             console.error("Column check/add error:", e.message);
@@ -124,26 +132,17 @@ const generateId = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 // --- Routes ---
 app.post('/register', async (req, res) => {
-    const { username, name, avatar } = req.body;
+    const { username, name, avatar, password } = req.body;
     try {
         let user = await User.findOne({ where: { username: username } });
 
         if (user) {
-            user.name = name;
-            user.avatar = avatar;
-            if (!user.uniqueId || user.uniqueId === '-----' || user.uniqueId === null) {
-                let newId = generateId();
-                while (await User.findOne({ where: { uniqueId: newId } })) {
-                    newId = generateId();
-                }
-                user.uniqueId = newId;
-                // Force update specifically for ID
-                await User.update({ uniqueId: newId }, { where: { username: username } });
-            }
-            await user.save();
-            // Refetch to be 100% sure
-            const freshUser = await User.findOne({ where: { username } });
-            return res.json(freshUser);
+            // If user exists, maybe update? Or fail?
+            // For now, let's treat it as "updating profile" ONLY if authenticated, but here we are "registering".
+            // Let's assume this means "I want to takeover this username".
+            // Since we added password auth, we should technically FAIL if user exists.
+            // But to keep legacy logic somewhat working:
+            return res.status(400).json({ error: "Username already taken. Please login." });
         }
 
         let newId = generateId();
@@ -155,12 +154,34 @@ app.post('/register', async (req, res) => {
             username,
             name,
             avatar,
-            uniqueId: newId
+            uniqueId: newId,
+            password: password // Saving plain text as requested for now
         });
         console.log("Registered New User:", user.toJSON());
         res.json(user);
     } catch (e) {
         console.error(e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const user = await User.findOne({ where: { username } });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // If user has a password, check it
+        if (user.password && user.password !== password) {
+            return res.status(401).json({ error: "Invalid password" });
+        }
+
+        // If user has NO password (legacy), we allow login (and maybe they set it later)
+        // Or if password matches.
+
+        // Return full user object
+        res.json(user);
+    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });

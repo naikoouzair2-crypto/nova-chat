@@ -22,14 +22,14 @@ const Toast = forwardRef((props, ref) => {
     };
 
     return (
-        <div className="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col-reverse gap-3 pointer-events-none w-full max-w-sm px-4">
             <AnimatePresence>
                 {toasts.map(toast => (
                     <motion.div
                         key={toast.id}
-                        initial={{ opacity: 0, x: 50 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 50 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
                         className="pointer-events-auto min-w-[300px] bg-[#1a1a1a] border border-[#333] p-4 rounded-xl shadow-2xl flex items-center gap-3 backdrop-blur-md"
                     >
                         {toast.type === 'success' && <CheckCircle className="w-5 h-5 text-green-500" />}
