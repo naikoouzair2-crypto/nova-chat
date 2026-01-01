@@ -98,6 +98,7 @@ function App() {
     setCurrentUser(null);
     setSelectedRecipient(null);
     setActiveRoom("");
+    window.location.reload(); // Force reload to clear all states/sockets
   };
 
   useEffect(() => {

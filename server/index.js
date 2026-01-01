@@ -471,14 +471,14 @@ io.on('connection', (socket) => {
             if (recipient && recipient !== 'all') {
                 io.to(recipient).emit('notification', messageWithId);
 
-                // TODO: Firebase Send Here
-                // const user = await User.findOne({ where: { username: recipient } });
-                // if (user && user.fcmToken) {
-                //      admin.messaging().send({
-                //          token: user.fcmToken,
-                //          notification: { title: author, body: messageWithId.message }
-                //      });
-                // }
+                // Firebase Send
+                const user = await User.findOne({ where: { username: recipient } });
+                if (user && user.fcmToken) {
+                    admin.messaging().send({
+                        token: user.fcmToken,
+                        notification: { title: author, body: messageWithId.message || (messageWithId.type === 'image' ? 'Sent an image' : 'Sent a voice message') }
+                    }).catch(err => console.log("FCM Error:", err.message));
+                }
             }
 
         } catch (err) { console.error(err); }

@@ -24,6 +24,12 @@ const avatars = [
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Luna&backgroundColor=ffdfbf,b6e3f4',
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Milo&backgroundColor=b6e3f4,c0aede',
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Sophie&backgroundColor=c0aede,ffdfbf', // 20
+    // Tech / Computer Lover Avatars (Robots)
+    'https://api.dicebear.com/9.x/bottts/svg?seed=Techie&backgroundColor=transparent',
+    'https://api.dicebear.com/9.x/bottts/svg?seed=Cyber&backgroundColor=transparent',
+    'https://api.dicebear.com/9.x/bottts/svg?seed=Coder&backgroundColor=transparent',
+    'https://api.dicebear.com/9.x/bottts/svg?seed=Gamer&backgroundColor=transparent',
+    'https://api.dicebear.com/9.x/bottts/svg?seed=Geek&backgroundColor=transparent',
 ];
 
 
