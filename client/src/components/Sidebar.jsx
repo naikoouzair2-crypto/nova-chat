@@ -4,8 +4,8 @@ import Toast from './UiToast';
 
 import { API_URL } from '../config';
 
-// 3D Avatar styles matched from JoinScreen
-const getAvatarStyle = (seed) => `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,ffdfbf`;
+// 3D Avatar styles matched from JoinScreen (Colorful)
+const getAvatarStyle = (seed) => `https://api.dicebear.com/9.x/adventurer/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,ffdfbf`;
 
 // Pre-defined seeds for avatar picker
 const AVATAR_SEEDS = ['Felix', 'Aneka', 'Zack', 'Molly', 'Leo', 'Simba', 'Nala', 'Willow', 'Jack', 'Lola'];
@@ -437,6 +437,10 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                             >
                                 Create Group
                             </button>
+                        </div>
+                        <div className="p-2 text-center">
+                            <p className="text-[10px] text-gray-600">Nova Chat v1.6.1 (Debug)</p>
+                            <p className="text-[8px] text-gray-800 break-all">{JSON.stringify({ id: currentUser?.uniqueId, name: currentUser?.name })}</p>
                         </div>
                     </div>
                 </div>

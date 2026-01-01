@@ -3,18 +3,23 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import novaLogo from '/nova_logo_v3.jpg';
 
-// Premium 3D Avatars with Backgrounds
+// Premium 3D Avatars (Colorful 'Adventurer' Style)
 const avatars = [
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Felix&backgroundColor=ffdfbf,c0aede,b6e3f4',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Aneka&backgroundColor=b6e3f4,ffdfbf',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Zack&backgroundColor=c0aede,b6e3f4',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Molly&backgroundColor=ffdfbf,c0aede',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Leo&backgroundColor=b6e3f4,ffdfbf',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Simba&backgroundColor=c0aede,b6e3f4',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Nala&backgroundColor=ffdfbf,c0aede',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Willow&backgroundColor=b6e3f4,ffdfbf',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Jack&backgroundColor=c0aede,b6e3f4',
-    'https://api.dicebear.com/9.x/notionists/svg?seed=Lola&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Felix&backgroundColor=b6e3f4,c0aede,ffdfbf',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Aneka&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Zack&backgroundColor=c0aede,b6e3f4',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Molly&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Leo&backgroundColor=b6e3f4,ffdfbf',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Simba&backgroundColor=c0aede,b6e3f4',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Nala&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Willow&backgroundColor=b6e3f4,ffdfbf',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Jack&backgroundColor=c0aede,b6e3f4',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Lola&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Oliver&backgroundColor=b6e3f4,ffdfbf',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Bella&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Max&backgroundColor=c0aede,b6e3f4',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Lucy&backgroundColor=ffdfbf,c0aede',
+    'https://api.dicebear.com/9.x/adventurer/svg?seed=Charlie&backgroundColor=b6e3f4,ffdfbf',
 ];
 
 function JoinScreen({ onJoin }) {
@@ -176,7 +181,7 @@ function JoinScreen({ onJoin }) {
                     <Sparkles className="w-3 h-3" />
                     <span>Next Gen Messaging</span>
                 </div>
-                <p className="text-[9px] text-gray-700 font-mono mt-1 opacity-50">Developed by Uzair Farooq Naikoo</p>
+                <p className="text-gray-500 text-xs mt-8 font-medium">Developed by Uzair Farooq Naikoo • v1.6</p>
             </div>
         </div>
     );

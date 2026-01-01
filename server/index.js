@@ -5,6 +5,11 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const { Sequelize, DataTypes, Op } = require('sequelize');
 const fs = require('fs');
+// Firebase Admin Setup
+const admin = require('firebase-admin');
+const serviceAccount = require('./firebase-service-account.json');
+admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+
 require('dotenv').config();
 
 process.on('uncaughtException', (err) => {
@@ -29,10 +34,6 @@ const io = new Server(server, {
 });
 
 // --- TiDB / MySQL Setup (Sequelize) ---
-// For TiDB, we need a secure connection. 
-// Render Env Var: TIDB_URI or separate DB_HOST, DB_USER, DB_PASSWORD, DB_PORT
-// We will support a standard connection string or individual params.
-
 const sequelize = new Sequelize(
     process.env.DB_NAME || 'test',
     process.env.DB_USER || 'root',
@@ -51,15 +52,14 @@ const sequelize = new Sequelize(
     }
 );
 
-
 // --- Models ---
-
 const User = sequelize.define('User', {
     username: { type: DataTypes.STRING, unique: true, allowNull: false },
     name: DataTypes.STRING,
     avatar: DataTypes.STRING,
     uniqueId: { type: DataTypes.STRING, unique: true },
-    status: { type: DataTypes.STRING, defaultValue: "Active" }
+    status: { type: DataTypes.STRING, defaultValue: "Active" },
+    fcmToken: { type: DataTypes.STRING } // For Firebase
 });
 
 const Friend = sequelize.define('Friend', {
@@ -83,8 +83,6 @@ const Group = sequelize.define('Group', {
     avatar: DataTypes.STRING
 });
 
-// Storing array of strings in SQL is hard without JSON type. 
-// TiDB supports JSON type.
 const GroupMember = sequelize.define('GroupMember', {
     groupId: DataTypes.STRING,
     username: DataTypes.STRING // Member username
@@ -103,8 +101,21 @@ const Message = sequelize.define('Message', {
 });
 
 // Sync Database
-sequelize.sync()
-    .then(() => console.log('TiDB/MySQL Database Synced'))
+sequelize.sync({ alter: true })
+    .then(async () => {
+        console.log('TiDB/MySQL Database Synced');
+        try {
+            const [results] = await sequelize.query("SHOW COLUMNS FROM Users LIKE 'fcmToken'");
+            if (results.length === 0) {
+                await sequelize.query("ALTER TABLE Users ADD COLUMN fcmToken VARCHAR(255) NULL;");
+                console.log("Successfully added 'fcmToken' column.");
+            } else {
+                console.log("'fcmToken' column already exists.");
+            }
+        } catch (e) {
+            console.error("Column check/add error:", e.message);
+        }
+    })
     .catch(err => console.error('Database Sync Error:', err));
 
 
@@ -112,17 +123,27 @@ sequelize.sync()
 const generateId = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 // --- Routes ---
-
 app.post('/register', async (req, res) => {
     const { username, name, avatar } = req.body;
     try {
-        let user = await User.findOne({ where: { username: username } }); // Case sensitivity depends on collation
+        let user = await User.findOne({ where: { username: username } });
 
         if (user) {
             user.name = name;
             user.avatar = avatar;
+            if (!user.uniqueId || user.uniqueId === '-----' || user.uniqueId === null) {
+                let newId = generateId();
+                while (await User.findOne({ where: { uniqueId: newId } })) {
+                    newId = generateId();
+                }
+                user.uniqueId = newId;
+                // Force update specifically for ID
+                await User.update({ uniqueId: newId }, { where: { username: username } });
+            }
             await user.save();
-            return res.json(user);
+            // Refetch to be 100% sure
+            const freshUser = await User.findOne({ where: { username } });
+            return res.json(freshUser);
         }
 
         let newId = generateId();
@@ -142,6 +163,22 @@ app.post('/register', async (req, res) => {
         console.error(e);
         res.status(500).json({ error: e.message });
     }
+});
+
+// Firebase Token Registration
+app.post('/register-device', async (req, res) => {
+    const { username, token } = req.body;
+    try {
+        const user = await User.findOne({ where: { username } });
+        if (user) {
+            user.fcmToken = token;
+            await user.save();
+            console.log(`FCM Token registered for ${username}`);
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: "User not found" });
+        }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/search', async (req, res) => {
@@ -202,7 +239,7 @@ app.get('/friends/:username', async (req, res) => {
 
             return {
                 ...f.toJSON(),
-                avatar: f.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=${f.username}`,
+                avatar: f.avatar || `https://api.dicebear.com/9.x/adventurer/svg?seed=${f.username}&backgroundColor=b6e3f4,c0aede,ffdfbf`,
                 lastMessage: lastMsg ? {
                     content: lastMsg.message || (lastMsg.type === 'image' ? 'Sent an image' : 'Sent a voice message'),
                     time: lastMsg.time,
@@ -332,12 +369,6 @@ app.get('/groups/:username', async (req, res) => {
         const groupIds = memberships.map(m => m.groupId);
 
         const groups = await Group.findAll({ where: { id: groupIds } });
-
-        // For each group, we need to fetch all members again to display count
-        // Optimization: For sidebar we usually just need the group details.
-        // We'll fetch members on demand or just use what we have.
-        // Let's populate the members array for the frontend.
-
         const groupsWithMembers = await Promise.all(groups.map(async (g) => {
             const allMembers = await GroupMember.findAll({ where: { groupId: g.id } });
             return {
@@ -418,6 +449,15 @@ io.on('connection', (socket) => {
 
             if (recipient && recipient !== 'all') {
                 io.to(recipient).emit('notification', messageWithId);
+
+                // TODO: Firebase Send Here
+                // const user = await User.findOne({ where: { username: recipient } });
+                // if (user && user.fcmToken) {
+                //      admin.messaging().send({
+                //          token: user.fcmToken,
+                //          notification: { title: author, body: messageWithId.message }
+                //      });
+                // }
             }
 
         } catch (err) { console.error(err); }

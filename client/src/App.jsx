@@ -11,52 +11,31 @@ import { API_URL } from './config';
 const socket = io.connect(API_URL);
 
 // Splash Screen Component
-const SplashScreen = ({ onComplete }) => (
-  <motion.div
-    className="fixed inset-0 z-50 flex items-center justify-center bg-black"
-    initial={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.8 }}
-    onAnimationComplete={onComplete}
-  >
-    <motion.div
-      initial={{ scale: 0.5, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 1, type: "spring" }}
-      className="flex flex-col items-center"
-    >
-      <img src="/nova_logo_transparent.png" alt="Nova Chat" className="w-32 h-32 object-contain mb-4 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
-      <motion.h1
-        className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 tracking-tighter"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        NOVA CHAT
-      </motion.h1>
-    </motion.div>
-  </motion.div>
-);
+// Splash Screen removed in favor of Native Splash
 
 function App() {
-  const [showSplash, setShowSplash] = useState(true);
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem("nova_user");
     return saved ? JSON.parse(saved) : null;
   });
+  // Instant open, no custom splash
+  const [showSplash, setShowSplash] = useState(false);
+
   const [selectedRecipient, setSelectedRecipient] = useState(null);
   const [activeRoom, setActiveRoom] = useState("");
 
   useEffect(() => {
-    // Only show splash if we really want to, but user asked to remove "double logo"
-    // We will show it briefly (800ms) only on first load for a smoother feel, 
-    // but if user is logged in, we might want to skip it or make it very fast?
-    // User said: "It should directly open". 
-    // So let's reduce to near zero or remove if cached user exists.
-    const delay = currentUser ? 0 : 2000;
-    const timer = setTimeout(() => setShowSplash(false), delay);
-    return () => clearTimeout(timer);
-  }, [currentUser]);
+    // If we have a user, ensure splash is OFF.
+    if (currentUser) {
+      setShowSplash(false);
+      return;
+    }
+
+    if (showSplash) {
+      const timer = setTimeout(() => setShowSplash(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentUser, showSplash]);
 
   const handleLogin = async (userData) => {
     // Register user on server to ensure they are searchable
@@ -118,12 +97,21 @@ function App() {
       // Run immediately in case already connected
       if (socket.connected) login();
 
-      // Re-register silently on app load to ensure server knows about us (if server restarted)
+      // Re-register silently on app load to ensure server knows about us AND to get fresh data (like ID)
       fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentUser)
-      }).catch(console.error);
+      })
+        .then(res => res.json())
+        .then(freshUser => {
+          if (freshUser && freshUser.uniqueId) {
+            console.log("Synced user data from server:", freshUser);
+            setCurrentUser(freshUser);
+            localStorage.setItem("nova_user", JSON.stringify(freshUser));
+          }
+        })
+        .catch(console.error);
 
       if ("Notification" in window && Notification.permission !== "granted") {
         Notification.requestPermission();
@@ -184,7 +172,7 @@ function App() {
   return (
     <>
       <AnimatePresence>
-        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+        {/* Native splash screen handles the intro */}
       </AnimatePresence>
 
       {!showSplash && (
