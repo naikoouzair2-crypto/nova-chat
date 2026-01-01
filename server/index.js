@@ -176,12 +176,54 @@ app.get('/friends/:username', async (req, res) => {
 
         const friends = await User.findAll({ where: { username: friendNames } });
 
-        const mapped = friends.map(f => ({
-            ...f.toJSON(),
-            avatar: f.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=${f.username}`
+        // Enrich with Last Message & Unread Count
+        const mapped = await Promise.all(friends.map(async (f) => {
+            const friendName = f.username;
+
+            // Get Last Message (either sent or received)
+            const lastMsg = await Message.findOne({
+                where: {
+                    [Op.or]: [
+                        { author: username, recipient: friendName },
+                        { author: friendName, recipient: username }
+                    ]
+                },
+                order: [['time', 'DESC']]
+            });
+
+            // Get Unread Count (messages FROM friend TO user that are NOT seen)
+            const unreadCount = await Message.count({
+                where: {
+                    author: friendName,
+                    recipient: username,
+                    seen: false
+                }
+            });
+
+            return {
+                ...f.toJSON(),
+                avatar: f.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=${f.username}`,
+                lastMessage: lastMsg ? {
+                    content: lastMsg.message || (lastMsg.type === 'image' ? 'Sent an image' : 'Sent a voice message'),
+                    time: lastMsg.time,
+                    author: lastMsg.author
+                } : null,
+                unreadCount: unreadCount || 0
+            };
         }));
+
+        // Sort by last message time (descending) so active chats are top
+        mapped.sort((a, b) => {
+            const timeA = a.lastMessage?.time || 0;
+            const timeB = b.lastMessage?.time || 0;
+            return timeB < timeA ? -1 : timeB > timeA ? 1 : 0;
+        });
+
         res.json(mapped);
-    } catch (e) { res.status(500).json([]); }
+    } catch (e) {
+        console.error(e);
+        res.status(500).json([]);
+    }
 });
 
 app.get('/requests/:username', async (req, res) => {

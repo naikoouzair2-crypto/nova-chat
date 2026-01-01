@@ -270,13 +270,25 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                         >
                                             <div className="relative shrink-0">
                                                 <img src={user.avatar} className="w-11 h-11 rounded-full bg-[#262626] object-cover" />
-                                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-black rounded-full"></div>
+                                                <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-black rounded-full ${user.unreadCount > 0 ? 'bg-red-500' : 'bg-green-500'}`}></div>
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-center mb-0.5">
                                                     <h3 className={`font-bold text-sm truncate ${isSelected ? 'text-blue-400' : 'text-white'}`}>{user.name || user.username}</h3>
+                                                    {user.unreadCount > 0 && (
+                                                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{user.unreadCount}</span>
+                                                    )}
                                                 </div>
-                                                <p className="text-gray-500 text-xs truncate">Tap to chat</p>
+                                                <p className={`text-xs truncate ${user.unreadCount > 0 ? 'text-white font-bold' : 'text-gray-500'}`}>
+                                                    {user.lastMessage ? (
+                                                        <>
+                                                            {user.lastMessage.author === currentUser.username && <span className="text-blue-400">You: </span>}
+                                                            {user.lastMessage.content}
+                                                        </>
+                                                    ) : (
+                                                        "Tap to chat"
+                                                    )}
+                                                </p>
                                             </div>
                                         </div>
                                     );
