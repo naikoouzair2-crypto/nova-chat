@@ -48,9 +48,15 @@ function App() {
   const [activeRoom, setActiveRoom] = useState("");
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 2500);
+    // Only show splash if we really want to, but user asked to remove "double logo"
+    // We will show it briefly (800ms) only on first load for a smoother feel, 
+    // but if user is logged in, we might want to skip it or make it very fast?
+    // User said: "It should directly open". 
+    // So let's reduce to near zero or remove if cached user exists.
+    const delay = currentUser ? 0 : 2000;
+    const timer = setTimeout(() => setShowSplash(false), delay);
     return () => clearTimeout(timer);
-  }, []);
+  }, [currentUser]);
 
   const handleLogin = async (userData) => {
     // Register user on server to ensure they are searchable

@@ -444,6 +444,15 @@ io.on('connection', (socket) => {
         } catch (e) { }
     });
 
+    // Typing Indicators
+    socket.on('typing', (data) => {
+        socket.to(data.room).emit('user_typing', data);
+    });
+
+    socket.on('stop_typing', (data) => {
+        socket.to(data.room).emit('user_stop_typing', data);
+    });
+
     socket.on('disconnect', () => {
         console.log('User Disconnected', socket.id);
     });

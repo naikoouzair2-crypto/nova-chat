@@ -16,7 +16,24 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
 
     // UI State
     const [isRequestAccepted, setIsRequestAccepted] = useState(!recipient.isRequest);
+    const [isTyping, setIsTyping] = useState(false);
     const toastRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
+
+    const handleTyping = () => {
+        socket.emit('typing', { room, username });
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+        typingTimeoutRef.current = setTimeout(() => {
+            socket.emit('stop_typing', { room, username });
+        }, 1500);
+    };
+
+    const handleInputChange = (e) => {
+        setCurrentMessage(e.target.value);
+        if (!isRecording) handleTyping();
+    };
 
     // Audio Logic
     const startRecording = async () => {
@@ -66,6 +83,7 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
         const msg = { room, author: username, recipient: recipient.username, type: 'audio', content: base64Content, message: "🎤 Voice Message", time: new Date().toISOString() };
         await socket.emit("send_message", msg);
         setMessageList(l => [...l, msg]);
+        socket.emit('stop_typing', { room, username }); // Ensure typing stops
     };
 
     const sendMessage = async () => {
@@ -74,6 +92,7 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
             await socket.emit("send_message", msg);
             setMessageList(l => [...l, msg]);
             setCurrentMessage("");
+            socket.emit('stop_typing', { room, username }); // Ensure typing stops
         }
     };
 
@@ -97,6 +116,14 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
         const handleDelete = (id) => setMessageList(l => l.filter(m => m.id !== id));
         const handleSeen = ({ room: r }) => { if (r === room) fetchHistory(); };
 
+        const handleUserTyping = (data) => {
+            if (data.username !== username) setIsTyping(true);
+        };
+
+        const handleUserStopTyping = (data) => {
+            if (data.username !== username) setIsTyping(false);
+        };
+
         // Re-fetch on reconnect to fill gaps (Self-Healing)
         const handleConnect = () => {
             console.log("ChatRoom: Reconnected, fetching history...");
@@ -108,6 +135,8 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
         socket.on("message_deleted", handleDelete);
         socket.on("messages_seen_update", handleSeen);
         socket.on("connect", handleConnect);
+        socket.on("user_typing", handleUserTyping);
+        socket.on("user_stop_typing", handleUserStopTyping);
 
         return () => {
             socket.off("receive_message", handleReceive);
@@ -115,22 +144,18 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
             socket.off("message_deleted", handleDelete);
             socket.off("messages_seen_update", handleSeen);
             socket.off("connect", handleConnect);
+            socket.off("user_typing", handleUserTyping);
+            socket.off("user_stop_typing", handleUserStopTyping);
         };
     }, [socket, room, username]);
 
     useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messageList]);
 
     const handleDeleteMessage = (id) => {
-        // Using a custom toast/confirmation would be better, but for now lets just not use native confirm if possible,
-        // or accept that a delete action might need accidental click prevention. 
-        // For speed/cleanliness, I'll use a double-tap concept or just allow it. 
-        // User said "popups are ugly". I will remove confirm entirely for now for fluid UX, or use my toast.
         socket.emit("delete_message", { room, id });
     };
 
     const handleDeleteChat = async () => {
-        // No confirm for now, or could use a toast undo.
-        // I will assume immediate delete but show toast
         await fetch(`${API_URL}/messages/${room}`, { method: 'DELETE' });
         setMessageList([]);
         toastRef.current?.success("Chat cleared");
@@ -145,8 +170,6 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
             });
             setIsRequestAccepted(true);
             toastRef.current?.success("Request Accepted!");
-            // We do NOT reload. Sidebar polling (5s) will pick up the friend status eventually,
-            // OR we can rely on the fact this view changes to a normal chat.
         } catch (e) {
             toastRef.current?.error("Failed to accept");
         }
@@ -181,7 +204,11 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                     </div>
                     <div>
                         <h3 className="text-white font-bold text-base leading-tight">{recipient?.username}</h3>
-                        <span className="text-gray-500 text-xs font-medium">Active now</span>
+                        {isTyping ? (
+                            <span className="text-blue-400 text-xs font-medium animate-pulse">Typing...</span>
+                        ) : (
+                            <span className="text-gray-500 text-xs font-medium">Active now</span>
+                        )}
                     </div>
                 </div>
                 <div className="flex gap-4 text-white">
@@ -231,6 +258,17 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                             </motion.div>
                         );
                     })}
+                    {/* Visual Typing Indicator Bubble (Optional) */}
+                    {isTyping && (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex w-full justify-start">
+                            <img src={recipient?.avatar} className="w-8 h-8 rounded-full mb-1 mr-2 self-end" />
+                            <div className="bg-[#262626] px-4 py-3 rounded-2xl rounded-tl-sm flex gap-1 items-center">
+                                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce delay-0"></div>
+                                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce delay-100"></div>
+                                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce delay-200"></div>
+                            </div>
+                        </motion.div>
+                    )}
                 </AnimatePresence>
                 <div ref={messagesEndRef} />
             </div>
@@ -253,7 +291,7 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                             value={currentMessage}
                             placeholder={isRecording ? "Listening..." : "Message..."}
                             className="flex-1 bg-transparent text-white placeholder-gray-500 outline-none text-[15px] min-w-0"
-                            onChange={(e) => setCurrentMessage(e.target.value)}
+                            onChange={handleInputChange}
                             onKeyPress={(e) => e.key === "Enter" && sendMessage()}
                             disabled={isRecording}
                         />

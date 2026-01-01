@@ -171,9 +171,12 @@ function JoinScreen({ onJoin }) {
             </motion.div>
 
             {/* Footer */}
-            <div className="absolute bottom-6 text-gray-600 text-[10px] tracking-widest uppercase flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                <span>Next Gen Messaging</span>
+            <div className="absolute bottom-6 flex flex-col items-center gap-1">
+                <div className="flex items-center gap-1 text-gray-600 text-[10px] tracking-widest uppercase">
+                    <Sparkles className="w-3 h-3" />
+                    <span>Next Gen Messaging</span>
+                </div>
+                <p className="text-[9px] text-gray-700 font-mono mt-1 opacity-50">Developed by Uzair Farooq Naikoo</p>
             </div>
         </div>
     );
