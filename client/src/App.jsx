@@ -141,8 +141,10 @@ function App() {
         Notification.requestPermission();
       }
 
-      // Initialize Firebase Token
-      requestForToken(currentUser);
+      // Initialize Firebase Token if user is logged in
+      if (currentUser) {
+        requestForToken(currentUser);
+      }
 
       return () => {
         socket.off('connect', login);
@@ -194,7 +196,7 @@ function App() {
     };
     socket.on("notification", handleNotification);
     return () => socket.off("notification", handleNotification);
-  }, [selectedRecipient]);
+  }, [selectedRecipient, currentUser]);
 
   return (
     <>

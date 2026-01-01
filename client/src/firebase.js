@@ -28,7 +28,7 @@ export const requestForToken = async (currentUser) => {
                 serviceWorkerRegistration: registration
             });
 
-            if (token) {
+            if (token && currentUser) {
                 // Send this token to server (and subscribe to topic/user)
                 await fetch(`${API_URL}/register-device`, {
                     method: 'POST',
