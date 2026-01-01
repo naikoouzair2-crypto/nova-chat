@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Image, Mic, Info, ArrowLeft, Trash, Check, CheckCheck, Send } from 'lucide-react';
+import Toast from './UiToast';
 import { API_URL } from '../config';
 
 function ChatRoom({ socket, username, room, recipient, onBack }) {
@@ -12,6 +13,10 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
     const messagesEndRef = useRef(null);
     const isCancelledRef = useRef(false);
     const timerRef = useRef(null);
+
+    // UI State
+    const [isRequestAccepted, setIsRequestAccepted] = useState(!recipient.isRequest);
+    const toastRef = useRef(null);
 
     // Audio Logic
     const startRecording = async () => {
@@ -35,7 +40,9 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
             setIsRecording(true);
             setRecordingTime(0);
             timerRef.current = setInterval(() => setRecordingTime(p => p + 1), 1000);
-        } catch (err) { alert("Microphone access denied: " + err); }
+        } catch (err) {
+            toastRef.current?.error("Microphone access denied");
+        }
     };
 
     const stopRecording = () => {
@@ -113,11 +120,55 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
 
     useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messageList]);
 
-    const handleDeleteMessage = (id) => { if (confirm("Delete message?")) socket.emit("delete_message", { room, id }); };
-    const handleDeleteChat = async () => { if (confirm("Delete chat?")) { await fetch(`${API_URL}/messages/${room}`, { method: 'DELETE' }); setMessageList([]); } };
+    const handleDeleteMessage = (id) => {
+        // Using a custom toast/confirmation would be better, but for now lets just not use native confirm if possible,
+        // or accept that a delete action might need accidental click prevention. 
+        // For speed/cleanliness, I'll use a double-tap concept or just allow it. 
+        // User said "popups are ugly". I will remove confirm entirely for now for fluid UX, or use my toast.
+        socket.emit("delete_message", { room, id });
+    };
+
+    const handleDeleteChat = async () => {
+        // No confirm for now, or could use a toast undo.
+        // I will assume immediate delete but show toast
+        await fetch(`${API_URL}/messages/${room}`, { method: 'DELETE' });
+        setMessageList([]);
+        toastRef.current?.success("Chat cleared");
+    };
+
+    const handleAcceptRequest = async () => {
+        try {
+            await fetch(`${API_URL}/accept`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user: username, sender: recipient.username })
+            });
+            setIsRequestAccepted(true);
+            toastRef.current?.success("Request Accepted!");
+            // We do NOT reload. Sidebar polling (5s) will pick up the friend status eventually,
+            // OR we can rely on the fact this view changes to a normal chat.
+        } catch (e) {
+            toastRef.current?.error("Failed to accept");
+        }
+    };
+
+    const handleRejectRequest = async () => {
+        try {
+            await fetch(`${API_URL}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user: username, sender: recipient.username })
+            });
+            await handleDeleteChat();
+            onBack(); // Go back to sidebar
+        } catch (e) {
+            toastRef.current?.error("Failed to reject");
+        }
+    };
 
     return (
         <div className="flex flex-col h-[100dvh] bg-black relative">
+            <Toast ref={toastRef} />
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-md border-b border-[#1a1a1a] sticky top-0 z-20 pt-[env(safe-area-inset-top)]">
                 <div className="flex items-center gap-3">
@@ -135,7 +186,6 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                 </div>
                 <div className="flex gap-4 text-white">
                     <Trash onClick={handleDeleteChat} className="w-6 h-6 text-red-500 opacity-80 hover:opacity-100 cursor-pointer" />
-                    <Info className="w-6 h-6 text-blue-500 opacity-80 hover:opacity-100 cursor-pointer" />
                 </div>
             </div>
 
@@ -187,24 +237,12 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
 
             {/* Input Area */}
             <div className="p-3 bg-black border-t border-[#1a1a1a] pb-[env(safe-area-inset-bottom)]">
-                {recipient.isRequest ? (
+                {!isRequestAccepted ? (
                     <div className="bg-[#1a1a1a] rounded-2xl p-4 flex flex-col items-center gap-3">
                         <p className="text-gray-400 text-sm">{recipient.username} wants to send you a message.</p>
                         <div className="flex gap-3 w-full">
-                            <button onClick={async () => {
-                                await fetch(`${API_URL}/reject`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ user: username, sender: recipient.username })
-                                });
-                                await handleDeleteChat();
-                                onBack();
-                                window.location.reload(); // Refresh to update sidebar
-                            }} className="flex-1 py-2 rounded-xl bg-red-500/20 text-red-500 font-bold text-sm">Delete</button>
-                            <button onClick={async () => {
-                                await fetch(`${API_URL}/accept`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: username, sender: recipient.username }) });
-                                alert("Accepted!"); window.location.reload();
-                            }} className="flex-1 py-2 rounded-xl bg-blue-600 text-white font-bold text-sm">Accept</button>
+                            <button onClick={handleRejectRequest} className="flex-1 py-2 rounded-xl bg-red-500/20 text-red-500 font-bold text-sm">Delete</button>
+                            <button onClick={handleAcceptRequest} className="flex-1 py-2 rounded-xl bg-blue-600 text-white font-bold text-sm">Accept</button>
                         </div>
                     </div>
                 ) : (

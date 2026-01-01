@@ -24,6 +24,8 @@ function JoinScreen({ onJoin }) {
     const [step, setStep] = useState(1);
     const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
 
+    const [isJoining, setIsJoining] = useState(false);
+
     const handleNext = async () => {
         if (!name.trim() || !username.trim()) {
             setError("Please fill in all fields.");
@@ -41,9 +43,13 @@ function JoinScreen({ onJoin }) {
         setStep(2);
     };
 
-    const handleJoin = () => {
+    const handleJoin = async () => {
         if (selectedAvatar) {
+            setIsJoining(true); // Show loader
+            // Simulate delay for effect or wait for parent callback
+            await new Promise(r => setTimeout(r, 800));
             onJoin({ name: name.trim(), username, avatar: selectedAvatar });
+            // Keep loader true until unmount
         }
     };
 
@@ -86,6 +92,7 @@ function JoinScreen({ onJoin }) {
                                     placeholder="e.g. Neo Anderson"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleNext()}
                                 />
                             </div>
 
@@ -97,6 +104,7 @@ function JoinScreen({ onJoin }) {
                                     placeholder="e.g. neo_01"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleNext()}
                                 />
                                 <p className="text-[10px] text-gray-500 mt-1 ml-1">This will be your unique handle.</p>
                             </div>
@@ -143,10 +151,20 @@ function JoinScreen({ onJoin }) {
 
                         <button
                             onClick={handleJoin}
-                            className="w-full bg-white text-black font-extrabold text-lg py-4 rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                            disabled={isJoining}
+                            className="w-full bg-white text-black font-extrabold text-lg py-4 rounded-xl hover:bg-gray-100 disabled:opacity-70 disabled:cursor-wait transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] relative"
                         >
-                            <span>Enter Nova</span>
-                            <ArrowRight className="w-5 h-5" />
+                            {isJoining ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                                    <span>Entering...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Enter Nova</span>
+                                    <ArrowRight className="w-5 h-5" />
+                                </>
+                            )}
                         </button>
                     </motion.div>
                 )}

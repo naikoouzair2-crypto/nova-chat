@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, LogOut, Plus, X, Camera, MessageCircle, UserPlus, Users, UserCheck, Check, Trash2 } from 'lucide-react';
+import Toast from './UiToast';
 
 import { API_URL } from '../config';
 
@@ -22,6 +23,9 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
     // Group Creation State
     const [newGroupName, setNewGroupName] = useState("");
     const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
+
+    // Toast
+    const toastRef = useRef(null);
 
     // Local state for tracking "Requested" button clicks in search to avoid refetching immediately
     const [requestedUsers, setRequestedUsers] = useState(new Set());
@@ -71,8 +75,8 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
     }, [searchTerm, currentUser]);
 
     const handleCreateGroup = async () => {
-        if (!newGroupName.trim()) return alert("Please enter a group name");
-        if (selectedGroupMembers.length === 0) return alert("Please select at least one friend");
+        if (!newGroupName.trim()) return toastRef.current.error("Please enter a group name");
+        if (selectedGroupMembers.length === 0) return toastRef.current.error("Please select at least one friend");
 
         await fetch(`${API_URL}/groups`, {
             method: 'POST',
@@ -84,6 +88,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
         setNewGroupName("");
         setSelectedGroupMembers([]);
         setActiveTab('chats');
+        toastRef.current.success("Group created!");
 
         // Optimistic refresh
         const res = await fetch(`${API_URL}/groups/${currentUser.username}`);
@@ -97,8 +102,17 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
         );
     };
 
+    const handleAvatarChange = (url) => {
+        const newUser = { ...currentUser, avatar: url };
+        localStorage.setItem("nova_user", JSON.stringify(newUser));
+        toastRef.current.success("Avatar updated! Restarting...");
+        // Delay reload slightly to show toast
+        setTimeout(() => window.location.reload(), 1500);
+    };
+
     return (
         <div className="w-full md:w-[380px] flex flex-col bg-black h-full border-r border-[#1a1a1a] relative">
+            <Toast ref={toastRef} />
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-6 border-b border-[#1a1a1a]/50">
                 <h1 className="text-2xl font-black text-white tracking-tight">Chats</h1>
@@ -193,6 +207,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                             <button
                                                 onClick={async () => {
                                                     setRequestedUsers(prev => new Set(prev).add(user.username));
+                                                    toastRef.current.info("Request sent");
                                                     await fetch(`${API_URL}/send_request`, {
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json' },
@@ -342,11 +357,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                         return (
                                             <div
                                                 key={seed}
-                                                onClick={() => {
-                                                    const newUser = { ...currentUser, avatar: url };
-                                                    localStorage.setItem("nova_user", JSON.stringify(newUser));
-                                                    window.location.reload();
-                                                }}
+                                                onClick={() => handleAvatarChange(url)}
                                                 className="aspect-square rounded-full border-2 border-transparent hover:border-blue-500 cursor-pointer overflow-hidden bg-black transition-all hover:scale-110"
                                             >
                                                 <img src={url} className="w-full h-full object-cover" />
