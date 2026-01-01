@@ -476,7 +476,24 @@ io.on('connection', (socket) => {
                 if (user && user.fcmToken) {
                     admin.messaging().send({
                         token: user.fcmToken,
-                        notification: { title: author, body: messageWithId.message || (messageWithId.type === 'image' ? 'Sent an image' : 'Sent a voice message') }
+                        notification: {
+                            title: author,
+                            body: messageWithId.message || (messageWithId.type === 'image' ? 'Sent an image' : 'Sent a voice message')
+                        },
+                        android: {
+                            priority: 'high',
+                            notification: {
+                                sound: 'default'
+                            }
+                        },
+                        webpush: {
+                            headers: {
+                                Urgency: 'high'
+                            },
+                            fcm_options: {
+                                link: '/'
+                            }
+                        }
                     }).catch(err => console.log("FCM Error:", err.message));
                 }
             }

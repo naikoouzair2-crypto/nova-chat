@@ -20,9 +20,14 @@ export const requestForToken = async (currentUser) => {
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
+            // Register Service Worker explicitly
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
             const token = await getToken(messaging, {
-                vapidKey: "BB8HOexqlAEboiqnHYuaJdyO0prLBcxjFH3EmrKMLUxKtk1mC6rxdTflnamJ82GrAC6vxyNgg_dtWx4YZUlmwsc"
+                vapidKey: "BB8HOexqlAEboiqnHYuaJdyO0prLBcxjFH3EmrKMLUxKtk1mC6rxdTflnamJ82GrAC6vxyNgg_dtWx4YZUlmwsc",
+                serviceWorkerRegistration: registration
             });
+
             if (token) {
                 // Send this token to server (and subscribe to topic/user)
                 await fetch(`${API_URL}/register-device`, {

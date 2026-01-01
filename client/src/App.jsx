@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import JoinScreen from './components/JoinScreen';
 import ChatRoom from './components/ChatRoom';
 import Sidebar from './components/Sidebar';
+import { requestForToken, onMessageListener } from './firebase'; // Import requestForToken
 import { API_URL } from './config';
 
 const socket = io.connect(API_URL);
@@ -139,6 +140,9 @@ function App() {
       if ("Notification" in window && Notification.permission !== "granted") {
         Notification.requestPermission();
       }
+
+      // Initialize Firebase Token
+      requestForToken(currentUser);
 
       return () => {
         socket.off('connect', login);
