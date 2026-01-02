@@ -483,7 +483,8 @@ io.on('connection', (socket) => {
                         android: {
                             priority: 'high',
                             notification: {
-                                sound: 'default'
+                                sound: 'default',
+                                channelId: 'default'
                             }
                         },
                         webpush: {

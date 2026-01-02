@@ -231,8 +231,10 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                         return (
                             <motion.div
                                 key={msg.id || idx}
-                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                initial={{ opacity: 0, scale: 0.9, y: 20, rotate: isMe ? 5 : -5 }}
+                                animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                                 className={`flex w-full ${isMe ? "justify-end" : "justify-start"}`}
                             >
                                 {!isMe && <img src={recipient?.avatar} className="w-8 h-8 rounded-full mb-1 mr-2 self-end" />}

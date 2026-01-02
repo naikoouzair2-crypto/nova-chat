@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, LogOut, Plus, X, Camera, MessageCircle, UserPlus, Users, UserCheck, Check, Trash2 } from 'lucide-react';
 import Toast from './UiToast';
 
@@ -172,33 +173,32 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
             </div>
 
             {/* Custom Tab Navigation */}
-            <div className="flex mx-6 bg-[#161616] p-1 rounded-xl mb-4 text-[10px] font-bold tracking-wide">
-                <button
-                    onClick={() => { setActiveTab('chats'); setSearchTerm(""); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all ${activeTab === 'chats' ? 'bg-[#262626] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
-                >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    <span>CHATS</span>
-                </button>
-                <button
-                    onClick={() => { setActiveTab('requests'); setSearchTerm(""); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all ${activeTab === 'requests' ? 'bg-[#262626] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
-                >
-                    <div className="relative flex items-center gap-1.5">
-                        <UserCheck className="w-3.5 h-3.5" />
-                        <span>REQS</span>
-                        {requestList.length > 0 && (
-                            <span className="bg-red-500 text-white text-[9px] px-1 py-0 rounded-full min-w-[14px] flex justify-center">{requestList.length}</span>
+            {/* Custom Tab Navigation */}
+            <div className="flex mx-6 bg-[#161616] p-1 rounded-xl mb-4 text-[10px] font-bold tracking-wide relative">
+                {['chats', 'requests', 'add'].map((tab) => (
+                    <button
+                        key={tab}
+                        onClick={() => { setActiveTab(tab); setSearchTerm(""); }}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all relative z-10 ${activeTab === tab ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                    >
+                        {activeTab === tab && (
+                            <motion.div
+                                layoutId="activeTab"
+                                className="absolute inset-0 bg-[#262626] rounded-lg shadow-sm -z-10"
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            />
                         )}
-                    </div>
-                </button>
-                <button
-                    onClick={() => { setActiveTab('add'); setSearchTerm(""); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all ${activeTab === 'add' ? 'bg-[#262626] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
-                >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>ADD</span>
-                </button>
+                        {tab === 'chats' && <MessageCircle className="w-3.5 h-3.5" />}
+                        {tab === 'requests' && <UserCheck className="w-3.5 h-3.5" />}
+                        {tab === 'add' && <UserPlus className="w-3.5 h-3.5" />}
+
+                        <span className="uppercase">{tab === 'requests' ? 'REQS' : tab}</span>
+
+                        {tab === 'requests' && requestList.length > 0 && (
+                            <span className="ml-1 bg-red-500 text-white text-[9px] px-1 py-0 rounded-full min-w-[14px] flex justify-center shadow-sm">{requestList.length}</span>
+                        )}
+                    </button>
+                ))}
             </div>
 
             {/* Content Area */}

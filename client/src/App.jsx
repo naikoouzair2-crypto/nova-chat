@@ -19,8 +19,30 @@ function App() {
     const saved = localStorage.getItem("nova_user");
     return saved ? JSON.parse(saved) : null;
   });
+
   // Instant open, no custom splash
   const [showSplash, setShowSplash] = useState(false);
+
+  useEffect(() => {
+    // Create Notification Channel for Android
+    const createChannel = async () => {
+      try {
+        await PushNotifications.createChannel({
+          id: 'default',
+          name: 'Default Channel',
+          description: 'General Notifications',
+          importance: 5,
+          visibility: 1,
+          sound: 'default',
+          vibration: true,
+        });
+        console.log('Notification channel created');
+      } catch (e) {
+        console.log('Not running on Android or channel creation failed', e);
+      }
+    };
+    createChannel();
+  }, []);
 
   const [selectedRecipient, setSelectedRecipient] = useState(null);
   const [activeRoom, setActiveRoom] = useState("");
@@ -188,7 +210,7 @@ function App() {
           if (Notification.permission === "granted") {
             new Notification(`New message from ${data.author}`, {
               body: data.type === 'audio' ? '🎤 Sent a voice message' : data.message,
-              icon: '/nova_chat_logo.png'
+              icon: '/nova_logo_transparent.png'
             });
           }
         }
@@ -208,7 +230,7 @@ function App() {
         !currentUser ? (
           <JoinScreen onJoin={handleLogin} />
         ) : (
-          <div className="flex h-[100dvh] w-full bg-black text-white font-sans overflow-hidden relative">
+          <div className="flex h-[100dvh] w-full bg-black text-white font-sans overflow-hidden relative pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
             <div className={`${selectedRecipient ? 'hidden md:flex' : 'flex'} w-full md:w-auto h-full border-r border-[#262626] z-10`}>
               <Sidebar
                 currentUser={currentUser}
