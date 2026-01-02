@@ -94,8 +94,8 @@ function App() {
       localStorage.setItem("nova_user", JSON.stringify(finalUser));
     } catch (e) {
       console.error("Auth failed:", e);
-      alert(e.message); // Simple alert for now, or we could pass error back to JoinScreen
       // Do NOT set current user
+      throw e; // Propagate error so JoinScreen knows to stop loading
     }
   };
 

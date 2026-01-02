@@ -85,19 +85,20 @@ function JoinScreen({ onJoin }) {
         // CRITICAL FIX: Ensure 'fastTrackUsername' is a string or null, never an event object
         const finalUsername = (typeof fastTrackUsername === 'string') ? fastTrackUsername : username;
 
-        // Pass all data including password and mode. Guard against circular objects.
-        onJoin({
-            name: name.trim(),
-            username: finalUsername,
-            avatar: selectedAvatar,
-            password,
-            mode
-        });
-
-        // Loader stays until parent handles it or unmounts
-        // Usually parent will set error if failed, so we might need a way to reset isJoining there?
-        // simple hack: set timeout to turn off loader if it takes too long (error case)
-        setTimeout(() => setIsJoining(false), 5000);
+        try {
+            await onJoin({
+                name: name.trim(),
+                username: finalUsername,
+                avatar: selectedAvatar,
+                password,
+                mode
+            });
+            // If successful, App component will unmount this screen, so no need to set isJoining(false)
+        } catch (e) {
+            console.error(e);
+            setError(e.message || "Login failed");
+            setIsJoining(false);
+        }
     };
 
     return (
