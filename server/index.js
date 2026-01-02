@@ -484,7 +484,8 @@ io.on('connection', (socket) => {
                             priority: 'high',
                             notification: {
                                 sound: 'default',
-                                channelId: 'default'
+                                channelId: 'default',
+                                tag: room // Group by room/chat
                             }
                         },
                         webpush: {

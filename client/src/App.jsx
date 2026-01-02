@@ -22,6 +22,7 @@ function App() {
 
   // Instant open, no custom splash
   const [showSplash, setShowSplash] = useState(false);
+  const [isVerifyingUser, setIsVerifyingUser] = useState(true);
 
   useEffect(() => {
     // Create Notification Channel for Android
@@ -51,7 +52,10 @@ function App() {
     // If we have a user, ensure splash is OFF.
     if (currentUser) {
       setShowSplash(false);
+      // Wait for re-auth to finish, handled below
       return;
+    } else {
+      setIsVerifyingUser(false);
     }
 
     if (showSplash) {
@@ -157,7 +161,8 @@ function App() {
             localStorage.setItem("nova_user", JSON.stringify(updated));
           }
         })
-        .catch(console.error);
+        .catch(console.error)
+        .finally(() => setIsVerifyingUser(false));
 
       if ("Notification" in window && Notification.permission !== "granted") {
         Notification.requestPermission();
@@ -226,7 +231,18 @@ function App() {
         {/* Native splash screen handles the intro */}
       </AnimatePresence>
 
-      {!showSplash && (
+      {!showSplash && isVerifyingUser && (
+        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <img src="/nova_logo_transparent.png" className="w-24 h-24 object-contain" />
+          </motion.div>
+        </div>
+      )}
+
+      {!showSplash && !isVerifyingUser && (
         !currentUser ? (
           <JoinScreen onJoin={handleLogin} />
         ) : (
