@@ -473,19 +473,31 @@ io.on('connection', (socket) => {
 
                 // Firebase Send
                 const user = await User.findOne({ where: { username: recipient } });
+
+                // Fetch sender details for Avatar
+                const senderUser = await User.findOne({ where: { username: author } });
+                let avatarUrl = senderUser ? senderUser.avatar : null;
+
+                // Convert SVG to PNG for Android Notification (DiceBear specific)
+                if (avatarUrl && avatarUrl.includes('.svg')) {
+                    avatarUrl = avatarUrl.replace('.svg', '.png');
+                }
+
                 if (user && user.fcmToken) {
                     admin.messaging().send({
                         token: user.fcmToken,
                         notification: {
                             title: author,
-                            body: messageWithId.message || (messageWithId.type === 'image' ? 'Sent an image' : 'Sent a voice message')
+                            body: messageWithId.message || (messageWithId.type === 'image' ? 'Sent an image' : 'Sent a voice message'),
+                            image: avatarUrl // Shows large image of sender's avatar
                         },
                         android: {
                             priority: 'high',
                             notification: {
                                 sound: 'default',
                                 channelId: 'default',
-                                tag: room // Group by room/chat
+                                tag: room, // Group by room/chat
+                                image: avatarUrl // Redundant but good for compatibility
                             }
                         },
                         webpush: {
