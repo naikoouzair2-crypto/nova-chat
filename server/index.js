@@ -103,7 +103,7 @@ const Message = sequelize.define('Message', {
 });
 
 // Sync Database
-sequelize.sync({ alter: true })
+sequelize.sync()
     .then(async () => {
         console.log('TiDB/MySQL Database Synced');
         try {
