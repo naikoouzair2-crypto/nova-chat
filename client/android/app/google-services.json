@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "63491828540",
+    "project_id": "nova-chat-e141d",
+    "storage_bucket": "nova-chat-e141d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:63491828540:android:e0ca5210959c0af52acc39",
+        "android_client_info": {
+          "package_name": "com.novachat.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBaXtNY0iLLCvDrXlvohVNqUVVFH5wOapc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
