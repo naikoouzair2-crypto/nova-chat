@@ -433,194 +433,195 @@ app.get('/groups/:username', async (req, res) => {
         console.error(e);
         res.status(500).json([]);
     }
+});
 
 
-    // Leave Group
-    app.post('/groups/:groupId/leave', async (req, res) => {
-        const { groupId } = req.params;
-        const { username } = req.body;
-        try {
-            await GroupMember.destroy({ where: { groupId, username } });
+// Leave Group
+app.post('/groups/:groupId/leave', async (req, res) => {
+    const { groupId } = req.params;
+    const { username } = req.body;
+    try {
+        await GroupMember.destroy({ where: { groupId, username } });
 
-            // System Message
-            const id = uuidv4();
-            await Message.create({
-                id, room: groupId, author: "System", recipient: "all",
-                message: `${username} left the group`, time: new Date().toISOString(), type: 'system'
-            });
-            io.to(groupId).emit('receive_message', { id, room: groupId, author: "System", message: `${username} left the group`, type: 'system', time: new Date().toISOString() });
+        // System Message
+        const id = uuidv4();
+        await Message.create({
+            id, room: groupId, author: "System", recipient: "all",
+            message: `${username} left the group`, time: new Date().toISOString(), type: 'system'
+        });
+        io.to(groupId).emit('receive_message', { id, room: groupId, author: "System", message: `${username} left the group`, type: 'system', time: new Date().toISOString() });
 
-            res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Delete Group (Admin Only)
+app.delete('/groups/:groupId', async (req, res) => {
+    const { groupId } = req.params;
+    const { username } = req.body; // Requester
+    try {
+        const group = await Group.findOne({ where: { id: groupId } });
+        if (!group) return res.status(404).json({ error: "Group not found" });
+
+        if (group.admin !== username) {
+            return res.status(403).json({ error: "Only admin can delete group" });
+        }
+
+        await Group.destroy({ where: { id: groupId } });
+        await GroupMember.destroy({ where: { groupId } });
+        await Message.destroy({ where: { room: groupId } });
+
+        io.to(groupId).emit('group_deleted', { groupId });
+
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Messages
+app.get('/messages/:room', async (req, res) => {
+    try {
+        const msgs = await Message.findAll({
+            where: { room: req.params.room },
+            order: [['time', 'ASC']]
+        });
+        res.json(msgs);
+    } catch (e) { res.json([]); }
+});
+
+app.delete('/messages/:room', async (req, res) => {
+    try {
+        await Message.destroy({ where: { room: req.params.room } });
+        io.to(req.params.room).emit('chat_cleared');
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
+// --- Socket Logic ---
+io.on('connection', (socket) => {
+    socket.on('login', (username) => {
+        socket.join(username);
+        console.log(`User ${username} joined their personal room`);
     });
 
-    // Delete Group (Admin Only)
-    app.delete('/groups/:groupId', async (req, res) => {
-        const { groupId } = req.params;
-        const { username } = req.body; // Requester
-        try {
-            const group = await Group.findOne({ where: { id: groupId } });
-            if (!group) return res.status(404).json({ error: "Group not found" });
+    socket.on('join_room', (data) => {
+        const { room } = data;
+        socket.join(room);
+        console.log(`User joined room: ${room}`);
+    });
 
-            if (group.admin !== username) {
-                return res.status(403).json({ error: "Only admin can delete group" });
+    socket.on('send_message', async (data) => {
+        try {
+            const messageWithId = { ...data, id: uuidv4() };
+            const { author, recipient, room } = data;
+
+            if (!data.isGroup && recipient !== 'all') {
+                const isFriend = await Friend.findOne({
+                    where: {
+                        [Op.or]: [
+                            { user1: author, user2: recipient },
+                            { user1: recipient, user2: author }
+                        ]
+                    }
+                });
+
+                if (!isFriend && author !== recipient) {
+                    const existingReq = await Request.findOne({ where: { from: author, to: recipient } });
+                    if (!existingReq) {
+                        await Request.create({ from: author, to: recipient });
+                        io.to(recipient).emit('request_received', { sender: author });
+                    }
+                }
             }
 
-            await Group.destroy({ where: { id: groupId } });
-            await GroupMember.destroy({ where: { groupId } });
-            await Message.destroy({ where: { room: groupId } });
+            await Message.create(messageWithId);
 
-            io.to(groupId).emit('group_deleted', { groupId });
+            // Broadcast
+            socket.to(room).emit('receive_message', messageWithId);
 
-            res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
-    });
+            if (recipient && recipient !== 'all') {
+                io.to(recipient).emit('notification', messageWithId);
 
-    // Messages
-    app.get('/messages/:room', async (req, res) => {
-        try {
-            const msgs = await Message.findAll({
-                where: { room: req.params.room },
-                order: [['time', 'ASC']]
-            });
-            res.json(msgs);
-        } catch (e) { res.json([]); }
-    });
+                // Firebase Send
+                const user = await User.findOne({ where: { username: recipient } });
 
-    app.delete('/messages/:room', async (req, res) => {
-        try {
-            await Message.destroy({ where: { room: req.params.room } });
-            io.to(req.params.room).emit('chat_cleared');
-            res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
-    });
+                // Fetch sender details for Avatar
+                const senderUser = await User.findOne({ where: { username: author } });
+                let avatarUrl = senderUser ? senderUser.avatar : null;
 
-
-    // --- Socket Logic ---
-    io.on('connection', (socket) => {
-        socket.on('login', (username) => {
-            socket.join(username);
-            console.log(`User ${username} joined their personal room`);
-        });
-
-        socket.on('join_room', (data) => {
-            const { room } = data;
-            socket.join(room);
-            console.log(`User joined room: ${room}`);
-        });
-
-        socket.on('send_message', async (data) => {
-            try {
-                const messageWithId = { ...data, id: uuidv4() };
-                const { author, recipient, room } = data;
-
-                if (!data.isGroup && recipient !== 'all') {
-                    const isFriend = await Friend.findOne({
-                        where: {
-                            [Op.or]: [
-                                { user1: author, user2: recipient },
-                                { user1: recipient, user2: author }
-                            ]
-                        }
-                    });
-
-                    if (!isFriend && author !== recipient) {
-                        const existingReq = await Request.findOne({ where: { from: author, to: recipient } });
-                        if (!existingReq) {
-                            await Request.create({ from: author, to: recipient });
-                            io.to(recipient).emit('request_received', { sender: author });
-                        }
-                    }
+                // Convert SVG to PNG for Android Notification (DiceBear specific)
+                if (avatarUrl && avatarUrl.includes('.svg')) {
+                    avatarUrl = avatarUrl.replace('.svg', '.png');
                 }
 
-                await Message.create(messageWithId);
-
-                // Broadcast
-                socket.to(room).emit('receive_message', messageWithId);
-
-                if (recipient && recipient !== 'all') {
-                    io.to(recipient).emit('notification', messageWithId);
-
-                    // Firebase Send
-                    const user = await User.findOne({ where: { username: recipient } });
-
-                    // Fetch sender details for Avatar
-                    const senderUser = await User.findOne({ where: { username: author } });
-                    let avatarUrl = senderUser ? senderUser.avatar : null;
-
-                    // Convert SVG to PNG for Android Notification (DiceBear specific)
-                    if (avatarUrl && avatarUrl.includes('.svg')) {
-                        avatarUrl = avatarUrl.replace('.svg', '.png');
-                    }
-
-                    if (user && user.fcmToken) {
-                        admin.messaging().send({
-                            token: user.fcmToken,
+                if (user && user.fcmToken) {
+                    admin.messaging().send({
+                        token: user.fcmToken,
+                        notification: {
+                            title: author,
+                            body: messageWithId.message || (messageWithId.type === 'image' ? 'Sent an image' : 'Sent a voice message'),
+                            image: avatarUrl // Shows large image of sender's avatar
+                        },
+                        android: {
+                            priority: 'high',
                             notification: {
-                                title: author,
-                                body: messageWithId.message || (messageWithId.type === 'image' ? 'Sent an image' : 'Sent a voice message'),
-                                image: avatarUrl // Shows large image of sender's avatar
-                            },
-                            android: {
-                                priority: 'high',
-                                notification: {
-                                    sound: 'default',
-                                    channelId: 'default',
-                                    tag: room, // Group by room/chat
-                                    image: avatarUrl // Redundant but good for compatibility
-                                }
-                            },
-                            webpush: {
-                                headers: {
-                                    Urgency: 'high'
-                                },
-                                fcm_options: {
-                                    link: '/'
-                                }
+                                sound: 'default',
+                                channelId: 'default',
+                                tag: room, // Group by room/chat
+                                image: avatarUrl // Redundant but good for compatibility
                             }
-                        }).catch(err => console.log("FCM Error:", err.message));
-                    }
+                        },
+                        webpush: {
+                            headers: {
+                                Urgency: 'high'
+                            },
+                            fcm_options: {
+                                link: '/'
+                            }
+                        }
+                    }).catch(err => console.log("FCM Error:", err.message));
                 }
+            }
 
-            } catch (err) { console.error(err); }
-        });
-
-        socket.on('mark_seen', async (data) => {
-            const { room, username } = data;
-            try {
-                const [affectedCount] = await Message.update(
-                    { seen: true },
-                    { where: { room, recipient: username, seen: false } }
-                );
-                if (affectedCount > 0) {
-                    io.to(room).emit('messages_seen_update', { room });
-                }
-            } catch (e) { console.error(e); }
-        });
-
-        socket.on('delete_message', async (data) => {
-            const { room, id } = data;
-            try {
-                await Message.destroy({ where: { id } });
-                io.to(room).emit('message_deleted', id);
-            } catch (e) { }
-        });
-
-        // Typing Indicators
-        socket.on('typing', (data) => {
-            socket.to(data.room).emit('user_typing', data);
-        });
-
-        socket.on('stop_typing', (data) => {
-            socket.to(data.room).emit('user_stop_typing', data);
-        });
-
-        socket.on('disconnect', () => {
-            console.log('User Disconnected', socket.id);
-        });
+        } catch (err) { console.error(err); }
     });
 
-    const PORT = process.env.PORT || 3003;
-    server.listen(PORT, () => {
-        console.log(`SERVER RUNNING ON PORT ${PORT}`);
+    socket.on('mark_seen', async (data) => {
+        const { room, username } = data;
+        try {
+            const [affectedCount] = await Message.update(
+                { seen: true },
+                { where: { room, recipient: username, seen: false } }
+            );
+            if (affectedCount > 0) {
+                io.to(room).emit('messages_seen_update', { room });
+            }
+        } catch (e) { console.error(e); }
     });
+
+    socket.on('delete_message', async (data) => {
+        const { room, id } = data;
+        try {
+            await Message.destroy({ where: { id } });
+            io.to(room).emit('message_deleted', id);
+        } catch (e) { }
+    });
+
+    // Typing Indicators
+    socket.on('typing', (data) => {
+        socket.to(data.room).emit('user_typing', data);
+    });
+
+    socket.on('stop_typing', (data) => {
+        socket.to(data.room).emit('user_stop_typing', data);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User Disconnected', socket.id);
+    });
+});
+
+const PORT = process.env.PORT || 3003;
+server.listen(PORT, () => {
+    console.log(`SERVER RUNNING ON PORT ${PORT}`);
+});
