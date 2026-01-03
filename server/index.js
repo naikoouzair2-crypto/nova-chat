@@ -284,6 +284,35 @@ app.get('/friends/:username', async (req, res) => {
     }
 });
 
+app.delete('/friends/:username', async (req, res) => {
+    const { username } = req.params; // The friend to remove
+    const { user } = req.body; // The current user requesting deletion
+
+    if (!user) return res.status(400).json({ error: "User is required" });
+
+    try {
+        await Friend.destroy({
+            where: {
+                [Op.or]: [
+                    { user1: user, user2: username },
+                    { user1: username, user2: user }
+                ]
+            }
+        });
+
+        // Also remove messages? Maybe keep them for now, but user requested "delete user he had".
+        // Usually "Unfriend" removes the connection. 
+        // Let's also remove the Chat History to be "clean".
+        // Or just unfriend. Let's start with unfriend. 
+        // Actually, let's remove messages too if they want to "delete" the user.
+        // Wait, removing messages might be aggressive. Let's just unfriend.
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.get('/requests/:username', async (req, res) => {
     const username = req.params.username;
     try {

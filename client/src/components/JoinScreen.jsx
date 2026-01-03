@@ -107,6 +107,14 @@ function JoinScreen({ onJoin }) {
             <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px]" />
             <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[120px]" />
 
+            {/* Full Screen Loader Overlay */}
+            {isJoining && (
+                <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
+                    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+                    <p className="text-blue-400 font-bold tracking-widest animate-pulse">ENTERING NOVA...</p>
+                </div>
+            )}
+
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, scale: 1 }}

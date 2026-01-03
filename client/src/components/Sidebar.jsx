@@ -328,7 +328,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                                     <div
                                                         key={user.username}
                                                         onClick={() => onSelectUser(user)}
-                                                        className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${isSelected ? 'bg-[#222]' : 'hover:bg-[#161616]'}`}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all group/item ${isSelected ? 'bg-[#222]' : 'hover:bg-[#161616]'}`}
                                                     >
                                                         <div className="relative shrink-0">
                                                             <img src={user.avatar} className="w-11 h-11 rounded-full bg-[#262626] object-cover" />
@@ -352,6 +352,29 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                                                 )}
                                                             </p>
                                                         </div>
+
+                                                        {/* Delete Button (visible on hover or if selected) */}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (window.confirm(`Remove ${user.name || user.username} from friends?`)) {
+                                                                    fetch(`${API_URL}/friends/${user.username}`, {
+                                                                        method: 'DELETE',
+                                                                        headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({ user: currentUser.username })
+                                                                    })
+                                                                        .then(() => {
+                                                                            setFriendList(prev => prev.filter(f => f.username !== user.username));
+                                                                            if (selectedUser?.username === user.username) onSelectUser(null);
+                                                                            toastRef.current.success("Friend removed");
+                                                                        });
+                                                                }
+                                                            }}
+                                                            className="p-2 rounded-full hover:bg-red-900/50 text-gray-600 hover:text-red-500 transition-colors opacity-0 group-hover/item:opacity-100"
+                                                            title="Remove Friend"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
                                                     </div>
                                                 );
                                             })}
