@@ -522,52 +522,49 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                 </div>
             )}
 
-        </div>
-                </div >
-            )
-}
 
-{/* Delete Confirmation Modal (Long Press) */ }
-{
-    deleteTarget && (
-        <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
-            <div className="bg-[#1a1a1a] w-full max-w-[280px] rounded-2xl p-4 border border-[#333] shadow-2xl scale-100 animate-in zoom-in-95">
-                <h3 className="text-white font-bold text-lg mb-2 text-center">Delete Friend?</h3>
-                <p className="text-gray-400 text-xs text-center mb-6">
-                    Are you sure you want to remove <span className="text-blue-400 font-bold">{deleteTarget.name || deleteTarget.username}</span>?
-                </p>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setDeleteTarget(null)}
-                        className="flex-1 bg-[#262626] text-white py-2 rounded-lg font-bold text-xs hover:bg-[#333] transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={async () => {
-                            try {
-                                await fetch(`${API_URL}/friends/${deleteTarget.username}`, {
-                                    method: 'DELETE',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ user: currentUser.username })
-                                });
-                                setFriendList(prev => prev.filter(f => f.username !== deleteTarget.username));
-                                if (selectedUser?.username === deleteTarget.username) onSelectUser(null);
-                                toastRef.current.success("Friend Removed");
-                            } catch (e) {
-                                toastRef.current.error("Failed to remove");
-                            }
-                            setDeleteTarget(null);
-                        }}
-                        className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold text-xs hover:bg-red-500 transition-colors shadow-lg shadow-red-900/20"
-                    >
-                        Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-    )
-}
+
+            {/* Delete Confirmation Modal (Long Press) */}
+            {
+                deleteTarget && (
+                    <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
+                        <div className="bg-[#1a1a1a] w-full max-w-[280px] rounded-2xl p-4 border border-[#333] shadow-2xl scale-100 animate-in zoom-in-95">
+                            <h3 className="text-white font-bold text-lg mb-2 text-center">Delete Friend?</h3>
+                            <p className="text-gray-400 text-xs text-center mb-6">
+                                Are you sure you want to remove <span className="text-blue-400 font-bold">{deleteTarget.name || deleteTarget.username}</span>?
+                            </p>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setDeleteTarget(null)}
+                                    className="flex-1 bg-[#262626] text-white py-2 rounded-lg font-bold text-xs hover:bg-[#333] transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await fetch(`${API_URL}/friends/${deleteTarget.username}`, {
+                                                method: 'DELETE',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ user: currentUser.username })
+                                            });
+                                            setFriendList(prev => prev.filter(f => f.username !== deleteTarget.username));
+                                            if (selectedUser?.username === deleteTarget.username) onSelectUser(null);
+                                            toastRef.current.success("Friend Removed");
+                                        } catch (e) {
+                                            toastRef.current.error("Failed to remove");
+                                        }
+                                        setDeleteTarget(null);
+                                    }}
+                                    className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold text-xs hover:bg-red-500 transition-colors shadow-lg shadow-red-900/20"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
 
         </div >
     );
