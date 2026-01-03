@@ -311,12 +311,28 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                                 <div
                                                     key={group.id}
                                                     onClick={() => onSelectUser(group)}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${selectedUser?.id === group.id ? 'bg-[#222] border-l-2 border-blue-500' : 'hover:bg-[#161616] border-l-2 border-transparent'}`}
+                                                    onContextMenu={(e) => {
+                                                        e.preventDefault();
+                                                        setDeleteTarget({ ...group, isGroup: true });
+                                                    }}
+                                                    onTouchStart={(e) => {
+                                                        const timer = setTimeout(() => {
+                                                            setDeleteTarget({ ...group, isGroup: true });
+                                                        }, 800);
+                                                        e.target.dataset.longPressTimer = timer;
+                                                    }}
+                                                    onTouchEnd={(e) => {
+                                                        clearTimeout(e.target.dataset.longPressTimer);
+                                                    }}
+                                                    onTouchMove={(e) => {
+                                                        clearTimeout(e.target.dataset.longPressTimer);
+                                                    }}
+                                                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all select-none ${selectedUser?.id === group.id ? 'bg-[#222] border-l-2 border-blue-500' : 'hover:bg-[#161616] border-l-2 border-transparent'}`}
                                                 >
-                                                    <div className="relative shrink-0">
+                                                    <div className="relative shrink-0 pointer-events-none">
                                                         <img src={group.avatar} className="w-11 h-11 rounded-full bg-[#262626] object-cover" />
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
+                                                    <div className="flex-1 min-w-0 pointer-events-none">
                                                         <h3 className="text-white font-bold text-sm truncate">{group.name}</h3>
                                                         <span className="text-gray-500 text-xs">{group.members.length} members</span>
                                                     </div>
@@ -524,14 +540,23 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
 
 
 
-            {/* Delete Confirmation Modal (Long Press) */}
+            {/* Delete/action Confirmation Modal (Long Press) */}
             {
                 deleteTarget && (
                     <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
                         <div className="bg-[#1a1a1a] w-full max-w-[280px] rounded-2xl p-4 border border-[#333] shadow-2xl scale-100 animate-in zoom-in-95">
-                            <h3 className="text-white font-bold text-lg mb-2 text-center">Delete Friend?</h3>
+                            <h3 className="text-white font-bold text-lg mb-2 text-center">
+                                {deleteTarget.isGroup
+                                    ? (deleteTarget.admin === currentUser.username ? "Delete Group?" : "Leave Group?")
+                                    : "Delete Friend?"}
+                            </h3>
                             <p className="text-gray-400 text-xs text-center mb-6">
-                                Are you sure you want to remove <span className="text-blue-400 font-bold">{deleteTarget.name || deleteTarget.username}</span>?
+                                {deleteTarget.isGroup
+                                    ? (deleteTarget.admin === currentUser.username
+                                        ? "This will delete the group for everyone."
+                                        : `Leave "${deleteTarget.name}"?`)
+                                    : <>Are you sure you want to remove <span className="text-blue-400 font-bold">{deleteTarget.name || deleteTarget.username}</span>?</>
+                                }
                             </p>
                             <div className="flex gap-2">
                                 <button
@@ -542,23 +567,54 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                 </button>
                                 <button
                                     onClick={async () => {
-                                        try {
-                                            await fetch(`${API_URL}/friends/${deleteTarget.username}`, {
-                                                method: 'DELETE',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ user: currentUser.username })
-                                            });
-                                            setFriendList(prev => prev.filter(f => f.username !== deleteTarget.username));
-                                            if (selectedUser?.username === deleteTarget.username) onSelectUser(null);
-                                            toastRef.current.success("Friend Removed");
-                                        } catch (e) {
-                                            toastRef.current.error("Failed to remove");
+                                        if (deleteTarget.isGroup) {
+                                            if (deleteTarget.admin === currentUser.username) {
+                                                // Delete Group
+                                                try {
+                                                    await fetch(`${API_URL}/groups/${deleteTarget.id}`, {
+                                                        method: 'DELETE',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ username: currentUser.username })
+                                                    });
+                                                    setGroupList(prev => prev.filter(g => g.id !== deleteTarget.id));
+                                                    if (selectedUser?.id === deleteTarget.id) onSelectUser(null);
+                                                    toastRef.current.success("Group Deleted");
+                                                } catch (e) { toastRef.current.error("Failed to delete group"); }
+                                            } else {
+                                                // Leave Group
+                                                try {
+                                                    await fetch(`${API_URL}/groups/${deleteTarget.id}/leave`, {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ username: currentUser.username })
+                                                    });
+                                                    setGroupList(prev => prev.filter(g => g.id !== deleteTarget.id));
+                                                    if (selectedUser?.id === deleteTarget.id) onSelectUser(null);
+                                                    toastRef.current.success("Left Group");
+                                                } catch (e) { toastRef.current.error("Failed to leave group"); }
+                                            }
+                                        } else {
+                                            // Delete Friend as before
+                                            try {
+                                                await fetch(`${API_URL}/friends/${deleteTarget.username}`, {
+                                                    method: 'DELETE',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ user: currentUser.username })
+                                                });
+                                                setFriendList(prev => prev.filter(f => f.username !== deleteTarget.username));
+                                                if (selectedUser?.username === deleteTarget.username) onSelectUser(null);
+                                                toastRef.current.success("Friend Removed");
+                                            } catch (e) {
+                                                toastRef.current.error("Failed to remove");
+                                            }
                                         }
                                         setDeleteTarget(null);
                                     }}
                                     className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold text-xs hover:bg-red-500 transition-colors shadow-lg shadow-red-900/20"
                                 >
-                                    Delete
+                                    {deleteTarget.isGroup
+                                        ? (deleteTarget.admin === currentUser.username ? "Delete" : "Leave")
+                                        : "Delete"}
                                 </button>
                             </div>
                         </div>

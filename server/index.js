@@ -433,6 +433,52 @@ app.get('/groups/:username', async (req, res) => {
         console.error(e);
         res.status(500).json([]);
     }
+    res.json(groupsWithMembers);
+} catch (e) {
+    console.error(e);
+    res.status(500).json([]);
+}
+});
+
+// Leave Group
+app.post('/groups/:groupId/leave', async (req, res) => {
+    const { groupId } = req.params;
+    const { username } = req.body;
+    try {
+        await GroupMember.destroy({ where: { groupId, username } });
+
+        // System Message
+        const id = uuidv4();
+        await Message.create({
+            id, room: groupId, author: "System", recipient: "all",
+            message: `${username} left the group`, time: new Date().toISOString(), type: 'system'
+        });
+        io.to(groupId).emit('receive_message', { id, room: groupId, author: "System", message: `${username} left the group`, type: 'system', time: new Date().toISOString() });
+
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Delete Group (Admin Only)
+app.delete('/groups/:groupId', async (req, res) => {
+    const { groupId } = req.params;
+    const { username } = req.body; // Requester
+    try {
+        const group = await Group.findOne({ where: { id: groupId } });
+        if (!group) return res.status(404).json({ error: "Group not found" });
+
+        if (group.admin !== username) {
+            return res.status(403).json({ error: "Only admin can delete group" });
+        }
+
+        await Group.destroy({ where: { id: groupId } });
+        await GroupMember.destroy({ where: { groupId } });
+        await Message.destroy({ where: { room: groupId } });
+
+        io.to(groupId).emit('group_deleted', { groupId });
+
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Messages
