@@ -355,7 +355,6 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                             {filteredFriends.map((user) => {
                                                 const isSelected = selectedUser?.username === user.username;
                                                 return (
-                                                return (
                                                     <div
                                                         key={user.username}
                                                         onClick={() => onSelectUser(user)}
