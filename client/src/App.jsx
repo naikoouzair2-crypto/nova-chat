@@ -49,20 +49,12 @@ function App() {
   const [activeRoom, setActiveRoom] = useState("");
 
   useEffect(() => {
-    // If we have a user, ensure splash is OFF.
     if (currentUser) {
-      setShowSplash(false);
-      // Wait for re-auth to finish, handled below
-      return;
+      // No verification needed if we have user
     } else {
       setIsVerifyingUser(false);
     }
-
-    if (showSplash) {
-      const timer = setTimeout(() => setShowSplash(false), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [currentUser, showSplash]);
+  }, [currentUser]);
 
   const handleLogin = async (userData) => {
     // userData contains { username, password, mode, ... }

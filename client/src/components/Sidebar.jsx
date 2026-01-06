@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, LogOut, Plus, X, Camera, MessageCircle, UserPlus, Users, UserCheck, Check, Trash2 } from 'lucide-react';
+import { Search, Plus, Users, MessageSquare, LogOut, Trash2, Loader } from 'lucide-react';
 import Toast from './UiToast';
 
 import { API_URL } from '../config';
@@ -12,6 +12,7 @@ const getAvatarStyle = (seed) => `https://api.dicebear.com/9.x/adventurer/svg?se
 const AVATAR_SEEDS = ['Felix', 'Aneka', 'Zack', 'Molly', 'Leo', 'Simba', 'Nala', 'Willow', 'Jack', 'Lola'];
 
 function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
+    const [activeTab, setActiveTab] = useState('chats');
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [friendList, setFriendList] = useState([]);
@@ -19,8 +20,9 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
     const [groupList, setGroupList] = useState([]);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showGroupModal, setShowGroupModal] = useState(false);
-    const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'requests' | 'add'
     const [isSearching, setIsSearching] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // New
+    const [isRefreshing, setIsRefreshing] = useState(false); // Pull to refresh state
 
     // Group Creation State
     const [newGroupName, setNewGroupName] = useState("");
@@ -299,12 +301,21 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
 
                                     const isEmpty = filteredFriends.length === 0 && filteredGroups.length === 0;
 
+                                    if (isRefreshing) {
+                                        return <div className="flex justify-center p-4"><Loader className="w-6 h-6 text-blue-500 animate-spin" /></div>;
+                                    }
+
                                     if (isEmpty && searchTerm) {
                                         return <p className="text-gray-600 text-center text-xs mt-8">No chats found.</p>;
                                     }
 
                                     return (
-                                        <>
+                                        <div
+                                            ref={listRef}
+                                            className="h-full overflow-y-auto"
+                                            onTouchStart={handlePullTouchStart}
+                                            onTouchMove={handlePullTouchMove}
+                                        >
                                             {/* Groups Section */}
                                             {filteredGroups.length > 0 && <p className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 mt-2">Groups ({filteredGroups.length})</p>}
                                             {filteredGroups.map((group) => (
@@ -344,16 +355,33 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                             {filteredFriends.map((user) => {
                                                 const isSelected = selectedUser?.username === user.username;
                                                 return (
+                                                return (
                                                     <div
                                                         key={user.username}
                                                         onClick={() => onSelectUser(user)}
-                                                        className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all group/item ${isSelected ? 'bg-[#222]' : 'hover:bg-[#161616]'}`}
+                                                        onContextMenu={(e) => {
+                                                            e.preventDefault();
+                                                            setDeleteTarget(user);
+                                                        }}
+                                                        onTouchStart={(e) => {
+                                                            const timer = setTimeout(() => {
+                                                                setDeleteTarget(user);
+                                                            }, 800);
+                                                            e.currentTarget.dataset.longPressTimer = timer;
+                                                        }}
+                                                        onTouchEnd={(e) => {
+                                                            clearTimeout(e.currentTarget.dataset.longPressTimer);
+                                                        }}
+                                                        onTouchMove={(e) => {
+                                                            clearTimeout(e.currentTarget.dataset.longPressTimer);
+                                                        }}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all group/item select-none ${isSelected ? 'bg-[#222]' : 'hover:bg-[#161616]'}`}
                                                     >
-                                                        <div className="relative shrink-0">
+                                                        <div className="relative shrink-0 pointer-events-none">
                                                             <img src={user.avatar} className="w-11 h-11 rounded-full bg-[#262626] object-cover" />
                                                             <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-black rounded-full ${user.unreadCount > 0 ? 'bg-red-500' : 'bg-green-500'}`}></div>
                                                         </div>
-                                                        <div className="flex-1 min-w-0">
+                                                        <div className="flex-1 min-w-0 pointer-events-none">
                                                             <div className="flex justify-between items-center mb-0.5 gap-2">
                                                                 <h3 className={`font-bold text-sm truncate flex-1 min-w-0 ${isSelected ? 'text-blue-400' : 'text-white'}`}>{user.name || user.username}</h3>
                                                                 {user.unreadCount > 0 && (
@@ -371,29 +399,6 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                                                 )}
                                                             </p>
                                                         </div>
-
-                                                        {/* Delete Button (visible on hover or if selected) */}
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (window.confirm(`Remove ${user.name || user.username} from friends?`)) {
-                                                                    fetch(`${API_URL}/friends/${user.username}`, {
-                                                                        method: 'DELETE',
-                                                                        headers: { 'Content-Type': 'application/json' },
-                                                                        body: JSON.stringify({ user: currentUser.username })
-                                                                    })
-                                                                        .then(() => {
-                                                                            setFriendList(prev => prev.filter(f => f.username !== user.username));
-                                                                            if (selectedUser?.username === user.username) onSelectUser(null);
-                                                                            toastRef.current.success("Friend removed");
-                                                                        });
-                                                                }
-                                                            }}
-                                                            className="p-2 rounded-full hover:bg-red-900/50 text-gray-600 hover:text-red-500 transition-colors opacity-0 group-hover/item:opacity-100"
-                                                            title="Remove Friend"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
                                                     </div>
                                                 );
                                             })}
