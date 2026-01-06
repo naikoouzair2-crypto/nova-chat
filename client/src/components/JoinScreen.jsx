@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Sparkles, User, Lock, AtSign, Loader2 } from 'lucide-react';
 
-// Premium 3D Avatars (Colorful 'Adventurer' Style) - UPGRADED TO 20
 const avatars = [
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Felix&backgroundColor=b6e3f4,c0aede,ffdfbf',
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Aneka&backgroundColor=ffdfbf,c0aede',
@@ -14,17 +13,6 @@ const avatars = [
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Willow&backgroundColor=b6e3f4,ffdfbf',
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Jack&backgroundColor=c0aede,b6e3f4',
     'https://api.dicebear.com/9.x/adventurer/svg?seed=Lola&backgroundColor=ffdfbf,c0aede',
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Oliver&backgroundColor=b6e3f4,ffdfbf',
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Bella&backgroundColor=ffdfbf,c0aede', // 12
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Max&backgroundColor=c0aede,b6e3f4',
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Lucy&backgroundColor=ffdfbf,c0aede',
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Charlie&backgroundColor=b6e3f4,ffdfbf',
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Daisy&backgroundColor=ffdfbf,c0aede', // 16
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Oscar&backgroundColor=c0aede,b6e3f4',
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Luna&backgroundColor=ffdfbf,b6e3f4',
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Milo&backgroundColor=b6e3f4,c0aede',
-    'https://api.dicebear.com/9.x/adventurer/svg?seed=Sophie&backgroundColor=c0aede,ffdfbf', // 20
-    // Tech / Computer Lover Avatars (Robots)
     'https://api.dicebear.com/9.x/bottts/svg?seed=Techie&backgroundColor=transparent',
     'https://api.dicebear.com/9.x/bottts/svg?seed=Cyber&backgroundColor=transparent',
     'https://api.dicebear.com/9.x/bottts/svg?seed=Coder&backgroundColor=transparent',
@@ -32,21 +20,19 @@ const avatars = [
     'https://api.dicebear.com/9.x/bottts/svg?seed=Geek&backgroundColor=transparent',
 ];
 
-
 function JoinScreen({ onJoin }) {
     const [mode, setMode] = useState('register'); // 'register' | 'login'
     const [name, setName] = useState("");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState(""); // For validation feedback
+    const [error, setError] = useState("");
     const [step, setStep] = useState(1);
     const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
-
     const [isJoining, setIsJoining] = useState(false);
 
     const handleNext = async () => {
         if (!username.trim() || !password.trim()) {
-            setError("Please fill in username and password.");
+            setError("Please fill in all fields.");
             return;
         }
 
@@ -55,208 +41,180 @@ function JoinScreen({ onJoin }) {
             return;
         }
 
-        // Normalize username: remove spaces, lowercase
         const cleanUsername = username.trim().toLowerCase().replace(/\s+/g, '');
         if (cleanUsername.length < 3) {
-            setError("Username must be at least 3 characters.");
+            setError("Username too short (min 3 chars).");
             return;
         }
 
         setError("");
-        setUsername(cleanUsername); // Update state to clean version
+        setUsername(cleanUsername);
 
         if (mode === 'login') {
-            // Skip avatar step for login
             handleJoinInternal(cleanUsername);
         } else {
             setStep(2);
         }
     };
 
-    /**
-     * Internal handler to ensure no event objects are passed from onClick.
-     * @param {string|null} fastTrackUsername - Optional username to use directly (for login)
-     */
     const handleJoinInternal = async (fastTrackUsername = null) => {
-        setIsJoining(true); // Show loader
-        // Simulate delay
-        await new Promise(r => setTimeout(r, 800));
-
-        // CRITICAL FIX: Ensure 'fastTrackUsername' is a string or null, never an event object
-        const finalUsername = (typeof fastTrackUsername === 'string') ? fastTrackUsername : username;
-
+        setIsJoining(true);
+        setError(""); // Clear previous errors
         try {
-            await onJoin({
+            const finalUsername = (typeof fastTrackUsername === 'string') ? fastTrackUsername : username;
+
+            // Timeout promise to handle "stuck" fetches
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Server timeout. Check network.")), 10000));
+
+            const joinPromise = onJoin({
                 name: name.trim(),
                 username: finalUsername,
                 avatar: selectedAvatar,
                 password,
                 mode
             });
-            // If successful, App component will unmount this screen, so no need to set isJoining(false)
+
+            await Promise.race([joinPromise, timeout]);
+
         } catch (e) {
             console.error(e);
-            setError(e.message || "Login failed");
+            setError(e.message || "Connection failed. Please try again.");
             setIsJoining(false);
         }
     };
 
     return (
-        <div className="flex items-center justify-center min-h-[100dvh] w-full bg-black p-4 font-sans text-white relative overflow-hidden">
-            {/* Background Elements */}
-            <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px]" />
-            <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[120px]" />
+        <div className="flex items-center justify-center min-h-[100dvh] w-full bg-[#050505] text-white relative overflow-hidden font-sans">
+            {/* Ambient Background */}
+            <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[100px] animate-pulse" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[100px] animate-pulse delay-700" />
 
-            {/* Full Screen Loader Overlay */}
-            {isJoining && (
-                <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
-                    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-                    <p className="text-blue-400 font-bold tracking-widest animate-pulse">ENTERING NOVA...</p>
-                </div>
-            )}
-
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-md border border-[#262626] bg-[#000000] p-8 rounded-2xl relative z-10 flex flex-col items-center shadow-2xl"
-            >
-                <div className="flex flex-col items-center mb-8">
-                    <img
-                        src="/nova_logo_transparent.png"
-                        alt="Nova Chat"
-                        className="w-32 h-32 mb-4 object-contain"
-                        style={{ filter: "drop-shadow(0 0 20px rgba(59, 130, 246, 0.4))" }}
-                    />
-                    <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 tracking-tight">
-                        Nova Chat
-                    </h1>
-                    <p className="text-gray-400 text-sm mt-2 font-medium">Create your unique identity.</p>
+            <div className="w-full max-w-sm px-6 relative z-10">
+                <div className="flex flex-col items-center mb-10">
+                    <div className="relative mb-2">
+                        <img src="/nova_logo_transparent.png" className="w-20 h-20 object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
+                    </div>
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">Nova Chat</h1>
+                    <p className="text-gray-500 text-sm font-medium">Connect beyond limits.</p>
                 </div>
 
-                {step === 1 ? (
-                    <motion.div
-                        className="w-full space-y-4"
-                        initial={{ x: 0 }}
-                        exit={{ x: -50, opacity: 0 }}
-                    >
-                        <div className="space-y-4">
+                <AnimatePresence mode="wait">
+                    {step === 1 ? (
+                        <motion.div
+                            key="step1"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="space-y-4"
+                        >
+                            {/* Toggle Switch */}
+                            <div className="flex bg-[#1a1a1a] p-1 rounded-xl mb-6 border border-[#262626]">
+                                <button
+                                    onClick={() => setMode('login')}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'login' ? 'bg-[#262626] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                                >
+                                    LOGIN
+                                </button>
+                                <button
+                                    onClick={() => setMode('register')}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'register' ? 'bg-[#262626] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                                >
+                                    REGISTER
+                                </button>
+                            </div>
+
                             {mode === 'register' && (
-                                <div>
-                                    <label className="text-xs text-gray-500 uppercase font-bold tracking-wider ml-1">Display Name</label>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><User className="w-3 h-3" /> Name</label>
                                     <input
                                         type="text"
-                                        className="w-full bg-[#111] border border-[#333] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors mt-1"
-                                        placeholder="e.g. Neo Anderson"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleNext()}
+                                        className="w-full bg-[#111] text-white border border-[#333] rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition-colors placeholder-gray-700 text-sm"
+                                        placeholder="Your Name"
                                     />
                                 </div>
                             )}
 
-                            <div>
-                                <label className="text-xs text-gray-500 uppercase font-bold tracking-wider ml-1">Username (Unique ID)</label>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><AtSign className="w-3 h-3" /> Username</label>
                                 <input
                                     type="text"
-                                    className="w-full bg-[#111] border border-[#333] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors mt-1"
-                                    placeholder="e.g. neo_01"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleNext()}
+                                    className="w-full bg-[#111] text-white border border-[#333] rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition-colors placeholder-gray-700 text-sm"
+                                    placeholder="unique_handle"
+                                    autoCapitalize="none"
                                 />
-                                <p className="text-[10px] text-gray-500 mt-1 ml-1">This will be your unique handle.</p>
                             </div>
 
-                            <div>
-                                <label className="text-xs text-gray-500 uppercase font-bold tracking-wider ml-1">Password</label>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Lock className="w-3 h-3" /> Password</label>
                                 <input
                                     type="password"
-                                    className="w-full bg-[#111] border border-[#333] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 transition-colors mt-1"
-                                    placeholder="Secret Password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full bg-[#111] text-white border border-[#333] rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition-colors placeholder-gray-700 text-sm"
+                                    placeholder="••••••••"
                                     onKeyDown={(e) => e.key === 'Enter' && handleNext()}
                                 />
                             </div>
 
-                            {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
-                        </div>
+                            {error && <p className="text-red-500 text-center text-xs font-bold py-2 bg-red-500/10 rounded-lg">{error}</p>}
 
-                        <button
-                            onClick={handleNext}
-                            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 mt-4"
+                            <button
+                                onClick={handleNext}
+                                disabled={isJoining}
+                                className="w-full bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 mt-4"
+                            >
+                                {isJoining ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'login' ? 'Enter Nova' : 'Next Step')}
+                                {!isJoining && <ArrowRight className="w-4 h-4" />}
+                            </button>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="step2"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="flex flex-col items-center"
                         >
-                            {mode === 'register' ? 'Next' : 'Login'} <ArrowRight className="w-4 h-4" />
-                        </button>
+                            <h3 className="text-xl font-bold text-white mb-6">Choose Identity</h3>
 
-                        <button
-                            onClick={() => {
-                                setMode(mode === 'register' ? 'login' : 'register');
-                                setError("");
-                            }}
-                            className="w-full text-center text-sm text-gray-500 hover:text-white transition-colors underline pt-2"
-                        >
-                            {mode === 'register' ? "Already have an account? Login" : "New to Nova? Create Account"}
-                        </button>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        className="w-full"
-                        initial={{ x: 50, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                    >
-                        {/* Avatar Carousel */}
-                        <div className="w-full mb-8">
-                            <p className="text-xs text-center text-gray-500 mb-3 uppercase tracking-widest font-bold">Choose Avatar</p>
-                            <div className="flex overflow-x-auto gap-4 py-4 px-2 no-scrollbar snap-x justify-center">
-                                {avatars.map((url, i) => (
-                                    <motion.div
+                            <div className="grid grid-cols-3 gap-4 w-full mb-8">
+                                {avatars.slice(0, 9).map((url, i) => (
+                                    <div
                                         key={i}
-                                        whileTap={{ scale: 0.9 }}
                                         onClick={() => setSelectedAvatar(url)}
-                                        className={`relative shrink-0 w-20 h-20 rounded-full p-1 cursor-pointer transition-all duration-300 ${selectedAvatar === url
-                                            ? 'bg-gradient-to-tr from-blue-500 to-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-110'
-                                            : 'bg-transparent grayscale opacity-50 hover:grayscale-0 hover:opacity-100'
-                                            }`}
+                                        className={`aspect-square rounded-full cursor-pointer p-0.5 transition-all ${selectedAvatar === url ? 'ring-2 ring-blue-500 scale-110 shadow-lg shadow-blue-500/30' : 'opacity-60 hover:opacity-100 hover:scale-105'}`}
                                     >
-                                        <img
-                                            src={url}
-                                            className="w-full h-full rounded-full bg-zinc-900 object-cover border-2 border-black"
-                                            alt="Avatar"
-                                        />
-                                    </motion.div>
+                                        <img src={url} className="w-full h-full rounded-full bg-[#1a1a1a] object-cover" />
+                                    </div>
                                 ))}
                             </div>
-                        </div>
 
-                        <button
-                            onClick={() => handleJoinInternal()}
-                            disabled={isJoining}
-                            className="w-full bg-white text-black font-extrabold text-lg py-4 rounded-xl hover:bg-gray-100 disabled:opacity-70 disabled:cursor-wait transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] relative"
-                        >
-                            {isJoining ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                                    <span>Entering...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span>Join Nova</span>
-                                    <ArrowRight className="w-5 h-5" />
-                                </>
-                            )}
-                        </button>
-                    </motion.div>
-                )}
-            </motion.div>
+                            <button
+                                onClick={() => handleJoinInternal()}
+                                disabled={isJoining}
+                                className="w-full bg-white text-black font-extrabold py-3.5 rounded-xl hover:bg-gray-200 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2"
+                            >
+                                {isJoining ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Setup"}
+                            </button>
 
-            {/* Footer */}
-            <div className="absolute bottom-6 flex flex-col items-center gap-1">
-                <div className="flex items-center gap-1 text-gray-600 text-[10px] tracking-widest uppercase">
-                    <Sparkles className="w-3 h-3" />
-                    <span>Next Gen Messaging</span>
-                </div>
-                <p className="text-gray-500 text-xs mt-8 font-medium">Developed by Uzair Farooq Naikoo • v1.6</p>
+                            <button
+                                onClick={() => setStep(1)}
+                                className="mt-4 text-xs text-gray-500 hover:text-white"
+                            >
+                                Back
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            <div className="absolute bottom-4 flex flex-col items-center gap-1 pointer-events-none opacity-50">
+                <p className="text-[10px] text-gray-600 font-mono tracking-widest">NOVA SECURE SYSTEM</p>
+                <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-blue-900 to-transparent"></div>
             </div>
         </div>
     );
