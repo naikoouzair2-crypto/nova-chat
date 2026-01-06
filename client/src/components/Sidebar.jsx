@@ -411,7 +411,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                                     <p className="text-gray-500 text-xs">Switch to the 'ADD' tab to find people!</p>
                                                 </div>
                                             )}
-                                        </>
+                                        </div>
                                     );
                                 })()}
                             </div>
