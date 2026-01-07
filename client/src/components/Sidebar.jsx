@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Users, MessageSquare, MessageCircle, LogOut, Trash2, Loader, UserCheck } from 'lucide-react';
+import { Search, Plus, Users, MessageSquare, MessageCircle, LogOut, Trash2, Loader, UserCheck, UserPlus } from 'lucide-react';
 import Toast from './UiToast';
 
 import { API_URL } from '../config';
