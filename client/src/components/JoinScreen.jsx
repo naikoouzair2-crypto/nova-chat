@@ -70,7 +70,7 @@ function JoinScreen({ onJoin }) {
             const finalUsername = (typeof fastTrackUsername === 'string') ? fastTrackUsername : username;
 
             // Timeout promise to handle "stuck" fetches
-            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Server timeout. Check network.")), 10000));
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Server timeout. Server might be waking up (can take 60s). Check network.")), 60000));
 
             const joinPromise = onJoin({
                 name: name.trim(),
