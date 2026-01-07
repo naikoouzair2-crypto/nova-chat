@@ -3,9 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Image, Mic, Info, ArrowLeft, Trash2, Check, CheckCheck, Send, MoreVertical, Palette, UserX, Copy } from 'lucide-react';
 import Toast from './UiToast';
 import { API_URL } from '../config';
-import CryptoJS from 'crypto-js';
 
-function ChatRoom({ socket, username, room, recipient, onBack }) {
+function ChatRoom({ socket, username, room, recipient, onBack, currentTheme, onThemeChange }) {
     const [currentMessage, setCurrentMessage] = useState("");
     const [messageList, setMessageList] = useState([]);
     const [isRecording, setIsRecording] = useState(false);
@@ -23,25 +22,7 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
     const toastRef = useRef(null);
     const typingTimeoutRef = useRef(null);
 
-    // Encryption Key Generation
-    const getSecretKey = () => {
-        const users = [username, recipient.username].sort().join("_");
-        return users; // Simple key for now, ideally strictly hashed but the library handles string keys
-    };
-
-    const encryptMessage = (text) => {
-        try {
-            return CryptoJS.AES.encrypt(text, getSecretKey()).toString();
-        } catch (e) { return text; }
-    };
-
-    const decryptMessage = (cipherText) => {
-        try {
-            const bytes = CryptoJS.AES.decrypt(cipherText, getSecretKey());
-            const originalText = bytes.toString(CryptoJS.enc.Utf8);
-            return originalText || cipherText; // Fallback if regular text
-        } catch (e) { return cipherText; }
-    };
+    // Encryption Removed
 
     const handleTyping = () => {
         socket.emit('typing', { room, username });
@@ -109,10 +90,9 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
 
     const sendMessage = async () => {
         if (currentMessage.trim()) {
-            const encryptedArgs = encryptMessage(currentMessage);
             const msg = {
                 room, author: username, recipient: recipient.username, type: 'text',
-                message: encryptedArgs, // Send Encrypted
+                message: currentMessage, // Plain text
                 time: new Date().toISOString()
             };
             await socket.emit("send_message", msg);
@@ -234,7 +214,7 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
     };
 
     return (
-        <div className="flex flex-col h-[100dvh] bg-black relative" onClick={() => { setShowMenu(false); setTargetMsg(null); }}>
+        <div className={`flex flex-col h-[100dvh] relative ${currentTheme === 'gradient' ? 'bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d]' : 'bg-black'}`} onClick={() => { setShowMenu(false); setTargetMsg(null); }}>
             <Toast ref={toastRef} />
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-md border-b border-[#1a1a1a] sticky top-0 z-20 pt-[env(safe-area-inset-top)]">
@@ -269,8 +249,8 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                                 exit={{ opacity: 0, scale: 0.9 }}
                                 className="absolute right-0 top-12 w-48 bg-[#222] border border-[#333] rounded-xl shadow-2xl overflow-hidden z-50"
                             >
-                                <div onClick={() => alert("Themes coming soon!")} className="px-4 py-3 hover:bg-[#333] cursor-pointer flex items-center gap-3 text-sm text-white">
-                                    <Palette className="w-4 h-4 text-blue-400" /> Change Theme
+                                <div onClick={() => onThemeChange(currentTheme === 'default' ? 'gradient' : 'default')} className="px-4 py-3 hover:bg-[#333] cursor-pointer flex items-center gap-3 text-sm text-white">
+                                    <Palette className="w-4 h-4 text-blue-400" /> {currentTheme === 'default' ? 'Enable Gradient' : 'Default Black'}
                                 </div>
                                 <div onClick={handleDeleteChat} className="px-4 py-3 hover:bg-[#333] cursor-pointer flex items-center gap-3 text-sm text-white">
                                     <Trash2 className="w-4 h-4 text-orange-400" /> Clear Chat
@@ -296,8 +276,6 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                     {messageList.map((msg, idx) => {
                         const isMe = username === msg.author;
                         const isAudio = msg.type === 'audio';
-                        // Decrypt text if not audio
-                        const displayText = (!isAudio && msg.message) ? decryptMessage(msg.message) : msg.message;
 
                         return (
                             <motion.div
@@ -320,7 +298,7 @@ function ChatRoom({ socket, username, room, recipient, onBack }) {
                                             : "bg-[#262626] text-white rounded-2xl rounded-tl-sm"
                                         }`}
                                 >
-                                    {isAudio ? <audio src={msg.content} controls className="w-[200px] h-8" /> : displayText}
+                                    {isAudio ? <audio src={msg.content} controls className="w-[200px] h-8" /> : msg.message}
 
                                     {isMe && (
                                         <div className="flex justify-end mt-1 space-x-0.5">

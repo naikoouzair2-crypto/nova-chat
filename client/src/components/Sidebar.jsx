@@ -34,7 +34,12 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
     // Toast
     const toastRef = useRef(null);
 
-    // Local state for tracking "Requested" button clicks in search to avoid refetching immediately
+    // Pull to Refresh State
+    const listRef = useRef(null);
+    const [pullStartY, setPullStartY] = useState(0);
+    const [pullDistance, setPullDistance] = useState(0);
+
+    // Local state for tracking "Requested" button clicks
     const [requestedUsers, setRequestedUsers] = useState(new Set());
 
     // Fetch Lists
@@ -126,6 +131,36 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
         toastRef.current.success("Avatar updated! Restarting...");
         // Delay reload slightly to show toast
         setTimeout(() => window.location.reload(), 1500);
+    };
+
+    const handlePullTouchStart = (e) => {
+        if (listRef.current?.scrollTop === 0) {
+            setPullStartY(e.touches[0].clientY);
+        }
+    };
+
+    const handlePullTouchMove = (e) => {
+        if (!pullStartY) return;
+        const currentY = e.touches[0].clientY;
+        const dist = currentY - pullStartY;
+        if (dist > 0 && dist < 200) {
+            setPullDistance(dist);
+        }
+    };
+
+    const handlePullTouchEnd = async () => {
+        if (pullDistance > 80) {
+            setIsRefreshing(true);
+            // Simulate refresh delay + fetch
+            await new Promise(r => setTimeout(r, 1000));
+            // Toggle active tab to trigger re-fetch or call API directly
+            const res = await fetch(`${API_URL}/friends/${currentUser.username}`);
+            if (res.ok) setFriendList(await res.json());
+            setIsRefreshing(false);
+            toastRef.current.success("Refreshed");
+        }
+        setPullStartY(0);
+        setPullDistance(0);
     };
 
     return (
@@ -311,8 +346,21 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
 
                                     return (
                                         <div
-                                            className="h-full overflow-y-auto"
+                                            ref={listRef}
+                                            className="h-full overflow-y-auto relative"
+                                            onTouchStart={handlePullTouchStart}
+                                            onTouchMove={handlePullTouchMove}
+                                            onTouchEnd={handlePullTouchEnd}
                                         >
+                                            {/* Pull Indicator */}
+                                            {pullDistance > 0 && (
+                                                <div className="flex justify-center items-center py-2 absolute top-0 w-full z-10 pointer-events-none" style={{ transform: `translateY(${pullDistance * 0.4}px)` }}>
+                                                    <div className="bg-[#333] p-2 rounded-full shadow-lg">
+                                                        {pullDistance > 80 ? <Loader className="w-5 h-5 text-blue-500 animate-spin" /> : <div className="w-5 h-5 border-2 border-gray-500 rounded-full border-t-transparent animate-spin" style={{ animationDuration: '2s' }}></div>}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Groups Section */}
                                             {filteredGroups.length > 0 && <p className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 mt-2">Groups ({filteredGroups.length})</p>}
                                             {filteredGroups.map((group) => (
@@ -360,16 +408,22 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
                                                             setDeleteTarget(user);
                                                         }}
                                                         onTouchStart={(e) => {
+                                                            const startY = e.touches[0].clientY;
                                                             const timer = setTimeout(() => {
                                                                 setDeleteTarget(user);
-                                                            }, 800);
+                                                            }, 600);
                                                             e.currentTarget.dataset.longPressTimer = timer;
+                                                            e.currentTarget.dataset.startY = startY;
                                                         }}
                                                         onTouchEnd={(e) => {
                                                             clearTimeout(e.currentTarget.dataset.longPressTimer);
                                                         }}
                                                         onTouchMove={(e) => {
-                                                            clearTimeout(e.currentTarget.dataset.longPressTimer);
+                                                            const moveY = e.touches[0].clientY;
+                                                            const startY = parseFloat(e.currentTarget.dataset.startY);
+                                                            if (Math.abs(moveY - startY) > 10) { // Tolerance of 10px
+                                                                clearTimeout(e.currentTarget.dataset.longPressTimer);
+                                                            }
                                                         }}
                                                         className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all group/item select-none ${isSelected ? 'bg-[#222]' : 'hover:bg-[#161616]'}`}
                                                     >

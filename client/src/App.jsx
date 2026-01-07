@@ -45,6 +45,7 @@ function App() {
 
   const [selectedRecipient, setSelectedRecipient] = useState(null);
   const [activeRoom, setActiveRoom] = useState("");
+  const [currentTheme, setCurrentTheme] = useState('default');
 
   useEffect(() => {
     if (currentUser) {
@@ -201,12 +202,7 @@ function App() {
 
       {!showSplash && isVerifyingUser && (
         <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <img src="/nova_logo_v3.png" className="w-24 h-24 object-contain" />
-          </motion.div>
+          <img src="/nova_logo_v3.png" className="w-24 h-24 object-contain rounded-3xl" />
         </div>
       )}
 
@@ -241,6 +237,8 @@ function App() {
                   room={activeRoom}
                   recipient={selectedRecipient}
                   onBack={handleBackToSidebar}
+                  currentTheme={currentTheme}
+                  onThemeChange={setCurrentTheme}
                 />
               )}
             </div>
