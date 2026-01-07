@@ -311,10 +311,7 @@ function Sidebar({ currentUser, onSelectUser, selectedUser, onLogout }) {
 
                                     return (
                                         <div
-                                            ref={listRef}
                                             className="h-full overflow-y-auto"
-                                            onTouchStart={handlePullTouchStart}
-                                            onTouchMove={handlePullTouchMove}
                                         >
                                             {/* Groups Section */}
                                             {filteredGroups.length > 0 && <p className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 mt-2">Groups ({filteredGroups.length})</p>}
