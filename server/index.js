@@ -5,8 +5,6 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const { Sequelize, DataTypes, Op } = require('sequelize');
 const fs = require('fs');
-// Firebase Admin Setup
-const admin = require('firebase-admin');
 const admin = require('firebase-admin');
 let serviceAccount;
 try {
