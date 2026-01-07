@@ -219,7 +219,7 @@ function JoinScreen({ onJoin }) {
             </div>
 
             <div className="absolute bottom-4 flex flex-col items-center gap-1 pointer-events-none opacity-50">
-                <p className="text-[10px] text-gray-600 font-mono tracking-widest">NOVA SECURE SYSTEM</p>
+                <p className="text-[10px] text-gray-600 font-mono tracking-widest">NOVA SECURE SYSTEM v1.1</p>
                 <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-blue-900 to-transparent"></div>
             </div>
         </div>
