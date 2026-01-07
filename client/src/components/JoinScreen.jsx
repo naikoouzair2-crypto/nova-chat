@@ -18,6 +18,12 @@ const avatars = [
     'https://api.dicebear.com/9.x/bottts/svg?seed=Coder&backgroundColor=transparent',
     'https://api.dicebear.com/9.x/bottts/svg?seed=Gamer&backgroundColor=transparent',
     'https://api.dicebear.com/9.x/bottts/svg?seed=Geek&backgroundColor=transparent',
+    'https://api.dicebear.com/9.x/avataaars/svg?seed=Happy&backgroundColor=b6e3f4',
+    'https://api.dicebear.com/9.x/avataaars/svg?seed=Cool&backgroundColor=c0aede',
+    'https://api.dicebear.com/9.x/avataaars/svg?seed=Cute&backgroundColor=ffdfbf',
+    'https://api.dicebear.com/9.x/micah/svg?seed=Artist&backgroundColor=ffdfbf',
+    'https://api.dicebear.com/9.x/micah/svg?seed=Designer&backgroundColor=c0aede',
+    'https://api.dicebear.com/9.x/micah/svg?seed=Dev&backgroundColor=b6e3f4',
 ];
 
 function JoinScreen({ onJoin }) {
