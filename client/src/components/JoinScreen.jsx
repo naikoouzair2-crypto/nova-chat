@@ -92,7 +92,7 @@ function JoinScreen({ onJoin }) {
             <div className="w-full max-w-sm px-6 relative z-10">
                 <div className="flex flex-col items-center mb-10">
                     <div className="relative mb-2">
-                        <img src="/nova_logo_transparent.png" className="w-20 h-20 object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
+                        <img src="/nova_logo_v3.png" className="w-20 h-20 object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
                     </div>
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">Nova Chat</h1>
                     <p className="text-gray-500 text-sm font-medium">Connect beyond limits.</p>

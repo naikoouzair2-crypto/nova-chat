@@ -8,11 +8,9 @@ import ChatRoom from './components/ChatRoom';
 import Sidebar from './components/Sidebar';
 import { requestForToken, onMessageListener } from './firebase'; // Import requestForToken
 import { API_URL } from './config';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const socket = io.connect(API_URL);
-
-// Splash Screen Component
-// Splash Screen removed in favor of Native Splash
 
 function App() {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -57,7 +55,6 @@ function App() {
   }, [currentUser]);
 
   const handleLogin = async (userData) => {
-    // userData contains { username, password, mode, ... }
     try {
       let endpoint = '/register';
       if (userData.mode === 'login') {
@@ -76,22 +73,12 @@ function App() {
         throw new Error(data.error || "Authentication failed");
       }
 
-      // If login successful, we have the user object
-      // We should also persist the password locally (insecure but requested) 
-      // so we can re-auth silently on refresh?? 
-      // Actually, silent re-auth usually uses a token. 
-      // Since we don't have tokens yet, the existing code relies on 'username' in localStorage.
-      // We will now store the full object.
-
-      // Merge password into the object if it's missing from response (it likely is for security, though our server sends it back currently if asked)
-      const finalUser = { ...data, password: userData.password }; // Store pwd for silent re-auth
-
+      const finalUser = { ...data, password: userData.password };
       setCurrentUser(finalUser);
       localStorage.setItem("nova_user", JSON.stringify(finalUser));
     } catch (e) {
       console.error("Auth failed:", e);
-      // Do NOT set current user
-      throw e; // Propagate error so JoinScreen knows to stop loading
+      throw e;
     }
   };
 
@@ -117,25 +104,21 @@ function App() {
     setCurrentUser(null);
     setSelectedRecipient(null);
     setActiveRoom("");
-    window.location.reload(); // Force reload to clear all states/sockets
+    window.location.reload();
   };
 
   useEffect(() => {
     if (currentUser) {
       const login = () => {
         socket.emit("login", currentUser.username);
-        // Also re-join active room if any
         if (activeRoom) {
           socket.emit("join_room", { username: currentUser.username, room: activeRoom });
         }
       };
 
       socket.on('connect', login);
-      // Run immediately in case already connected
       if (socket.connected) login();
 
-      // Re-register / Re-login silently on app load
-      // Ideally we use a token. For now, we use the stored password.
       const endpoint = currentUser.password ? '/login' : '/register';
 
       fetch(`${API_URL}${endpoint}`, {
@@ -147,7 +130,6 @@ function App() {
         .then(freshUser => {
           if (freshUser && (freshUser.uniqueId || freshUser.username)) {
             console.log("Synced user data from server:", freshUser);
-            // Update local storage but keep password if server didn't send it back (it usually doesn't in a real app, but here it might)
             const updated = { ...freshUser, password: currentUser.password || freshUser.password };
             setCurrentUser(updated);
             localStorage.setItem("nova_user", JSON.stringify(updated));
@@ -160,7 +142,6 @@ function App() {
         Notification.requestPermission();
       }
 
-      // Initialize Firebase Token if user is logged in
       if (currentUser) {
         requestForToken(currentUser);
       }
@@ -172,7 +153,6 @@ function App() {
   }, [currentUser, activeRoom]);
 
   useEffect(() => {
-    // Request Permissions
     const requestPerms = async () => {
       if ("Notification" in window && Notification.permission !== "granted") {
         Notification.requestPermission();
@@ -180,7 +160,6 @@ function App() {
       try {
         await LocalNotifications.requestPermissions();
       } catch (e) {
-        // Not running in Capacitor environment
       }
     };
     requestPerms();
@@ -190,7 +169,6 @@ function App() {
       const isWindowHidden = document.hidden;
 
       if (!isChattingWithSender || isWindowHidden) {
-        // Try Capacitor
         try {
           await LocalNotifications.schedule({
             notifications: [{
@@ -203,11 +181,10 @@ function App() {
             }]
           });
         } catch (e) {
-          // Fallback to Web
           if (Notification.permission === "granted") {
             new Notification(`New message from ${data.author}`, {
               body: data.type === 'audio' ? '🎤 Sent a voice message' : data.message,
-              icon: '/nova_logo_transparent.png'
+              icon: '/nova_logo_v3.png'
             });
           }
         }
@@ -220,7 +197,6 @@ function App() {
   return (
     <>
       <AnimatePresence>
-        {/* Native splash screen handles the intro */}
       </AnimatePresence>
 
       {!showSplash && isVerifyingUser && (
@@ -229,7 +205,7 @@ function App() {
             animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            <img src="/nova_logo_transparent.png" className="w-24 h-24 object-contain" />
+            <img src="/nova_logo_v3.png" className="w-24 h-24 object-contain" />
           </motion.div>
         </div>
       )}
@@ -275,4 +251,12 @@ function App() {
   );
 }
 
-export default App;
+function AppWithBoundary() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  )
+}
+
+export default AppWithBoundary;
