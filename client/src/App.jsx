@@ -45,7 +45,7 @@ function App() {
 
   const [selectedRecipient, setSelectedRecipient] = useState(null);
   const [activeRoom, setActiveRoom] = useState("");
-  const [currentTheme, setCurrentTheme] = useState('default');
+  const [currentTheme, setCurrentTheme] = useState('dark');
 
   useEffect(() => {
     if (currentUser) {

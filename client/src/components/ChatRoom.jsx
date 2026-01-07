@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Image, Mic, Info, ArrowLeft, Trash2, Check, CheckCheck, Send, MoreVertical, Palette, UserX, Copy } from 'lucide-react';
+import { Heart, Image, Mic, Info, ArrowLeft, Trash2, Check, CheckCheck, Send, MoreVertical, Palette, UserX, Copy, LogOut } from 'lucide-react';
 import Toast from './UiToast';
 import { API_URL } from '../config';
 
@@ -214,7 +214,7 @@ function ChatRoom({ socket, username, room, recipient, onBack, currentTheme, onT
     };
 
     return (
-        <div className={`flex flex-col h-[100dvh] relative ${currentTheme === 'gradient' ? 'bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d]' : 'bg-black'}`} onClick={() => { setShowMenu(false); setTargetMsg(null); }}>
+        <div className={`flex flex-col h-[100dvh] relative ${currentTheme === 'light' ? 'bg-white text-black' : 'bg-black text-white'}`} onClick={() => { setShowMenu(false); setTargetMsg(null); }}>
             <Toast ref={toastRef} />
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-md border-b border-[#1a1a1a] sticky top-0 z-20 pt-[env(safe-area-inset-top)]">
@@ -249,15 +249,27 @@ function ChatRoom({ socket, username, room, recipient, onBack, currentTheme, onT
                                 exit={{ opacity: 0, scale: 0.9 }}
                                 className="absolute right-0 top-12 w-48 bg-[#222] border border-[#333] rounded-xl shadow-2xl overflow-hidden z-50"
                             >
-                                <div onClick={() => onThemeChange(currentTheme === 'default' ? 'gradient' : 'default')} className="px-4 py-3 hover:bg-[#333] cursor-pointer flex items-center gap-3 text-sm text-white">
-                                    <Palette className="w-4 h-4 text-blue-400" /> {currentTheme === 'default' ? 'Enable Gradient' : 'Default Black'}
+                                <div onClick={() => onThemeChange(currentTheme === 'light' ? 'dark' : 'light')} className="px-4 py-3 hover:bg-[#333] cursor-pointer flex items-center gap-3 text-sm text-white">
+                                    <Palette className="w-4 h-4 text-blue-400" /> {currentTheme === 'light' ? 'Dark Mode' : 'Light Mode'}
                                 </div>
                                 <div onClick={handleDeleteChat} className="px-4 py-3 hover:bg-[#333] cursor-pointer flex items-center gap-3 text-sm text-white">
                                     <Trash2 className="w-4 h-4 text-orange-400" /> Clear Chat
                                 </div>
-                                <div onClick={handleDeleteFriend} className="px-4 py-3 hover:bg-[#333] cursor-pointer flex items-center gap-3 text-sm text-red-500">
-                                    <UserX className="w-4 h-4" /> Delete Friend
-                                </div>
+                                {recipient.isGroup ? (
+                                    recipient.admin === username ? (
+                                        <div onClick={() => alert("Delete Group logic here (handled in sidebar for now, need upstream refactor or event)")} className="px-4 py-3 hover:bg-[#333] cursor-pointer flex items-center gap-3 text-sm text-red-500">
+                                            <UserX className="w-4 h-4" /> Delete Group
+                                        </div>
+                                    ) : (
+                                        <div onClick={() => alert("Leave Group logic here")} className="px-4 py-3 hover:bg-[#333] cursor-pointer flex items-center gap-3 text-sm text-red-500">
+                                            <LogOut className="w-4 h-4" /> Leave Group
+                                        </div>
+                                    )
+                                ) : (
+                                    <div onClick={handleDeleteFriend} className="px-4 py-3 hover:bg-[#333] cursor-pointer flex items-center gap-3 text-sm text-red-500">
+                                        <UserX className="w-4 h-4" /> Delete Friend
+                                    </div>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -269,7 +281,7 @@ function ChatRoom({ socket, username, room, recipient, onBack, currentTheme, onT
                 <div className="flex flex-col items-center py-8 opacity-50">
                     <img src={recipient?.avatar} className="w-24 h-24 rounded-full mb-4 border-4 border-[#1a1a1a]" />
                     <h2 className="text-xl font-bold text-white">{recipient?.username}</h2>
-                    <p className="text-sm text-gray-500 flex items-center gap-1"><span className="text-green-500">●</span> End-to-End Encrypted</p>
+                    <p className="text-sm text-gray-500 flex items-center gap-1"><span className="text-green-500">●</span> Connected</p>
                 </div>
 
                 <AnimatePresence>
