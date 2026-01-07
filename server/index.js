@@ -7,8 +7,15 @@ const { Sequelize, DataTypes, Op } = require('sequelize');
 const fs = require('fs');
 // Firebase Admin Setup
 const admin = require('firebase-admin');
-const serviceAccount = require('./firebase-service-account.json');
-admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+const admin = require('firebase-admin');
+let serviceAccount;
+try {
+    serviceAccount = require('./firebase-service-account.json');
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    console.log("Firebase Admin Initialized");
+} catch (e) {
+    console.warn("Firebase Admin Initialization Failed: firebase-service-account.json not found or invalid. Notifications will not work.");
+}
 
 require('dotenv').config();
 
