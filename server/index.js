@@ -101,7 +101,7 @@ app.post('/register', async (req, res) => {
         const newUser = {
             username,
             name,
-            avatar,
+            avatar: avatar || null, // Default to null if undefined
             uniqueId: newId,
             password: password, // Plain text as requested
             fcmToken: null,
