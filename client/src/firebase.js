@@ -2,91 +2,49 @@ import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
-import { API_URL } from './config';
 
-// TODO: Replace with your config from Firebase Console
-const firebaseConfig = {
-    apiKey: "AIzaSyCUpLBnpha_e2pdLv83DPuv3Jj4sWMgkXs",
-    authDomain: "nova-chat-e141d.firebaseapp.com",
-    projectId: "nova-chat-e141d",
-    storageBucket: "nova-chat-e141d.firebasestorage.app",
-    messagingSenderId: "63491828540",
-    appId: "1:63491828540:web:123ebf80902fbd202acc39",
-    measurementId: "G-9VKCYE2KL6"
-};
-
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
-
-const sendTokenToServer = async (username, token) => {
-    if (!token || !username) return;
-    try {
-        await fetch(`${API_URL}/register-device`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, token })
-        });
-        console.log('Token generated and sent to server:', token);
-    } catch (err) {
-        console.error('Error sending token to server:', err);
-    }
-};
+// ... (existing imports)
 
 export const requestForToken = async (currentUser) => {
     try {
         if (Capacitor.isNativePlatform()) {
-            // --- NATIVE (ANDROID/IOS) LOGIC ---
-            const permStatus = await PushNotifications.checkPermissions();
+            console.log("Initializing Native Push Notifications...");
 
+            // Check & Request Permissions
+            let permStatus = await PushNotifications.checkPermissions();
             if (permStatus.receive === 'prompt') {
-                const newStatus = await PushNotifications.requestPermissions();
-                if (newStatus.receive !== 'granted') {
-                    throw new Error('User denied permissions!');
-                }
+                permStatus = await PushNotifications.requestPermissions();
             }
 
             if (permStatus.receive !== 'granted') {
-                // Double check if initial check was already denied
-                if (permStatus.receive === 'denied') return;
+                console.warn("Push notifications permission denied");
+                return;
             }
 
+            // Register
             await PushNotifications.register();
 
-            // Listen for registration to get token
+            // Listeners (We add these once here or in App.jsx - cleaner here for token)
+            // Ideally listeners should be in App.jsx to handle routing, but token registration is here.
+            // We'll just register the token listener here.
             PushNotifications.addListener('registration', (token) => {
-                console.log('Push Registration Token: ', token.value);
+                console.log('Mobile Push Registration Token: ', token.value);
                 sendTokenToServer(currentUser.username, token.value);
             });
 
             PushNotifications.addListener('registrationError', (error) => {
-                console.error('Error on registration: ', error);
-            });
-
-            // Handle foreground notifications
-            PushNotifications.addListener('pushNotificationReceived', (notification) => {
-                console.log('Push received: ', notification);
-                // Toast or Alert is usually handled by presentationOptions in config, 
-                // but you can add custom UI logic here if needed.
-            });
-
-            // Handle notification tap
-            PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-                console.log('Push action performed: ', notification);
-                // Navigate to chat screen if needed
+                console.error('Push registration error: ', error);
             });
 
         } else {
-            // --- WEB / PWA LOGIC ---
+            // ... (web logic remains)
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
-                // Register Service Worker explicitly
                 const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-
                 const token = await getToken(messaging, {
                     vapidKey: "BB8HOexqlAEboiqnHYuaJdyO0prLBcxjFH3EmrKMLUxKtk1mC6rxdTflnamJ82GrAC6vxyNgg_dtWx4YZUlmwsc",
                     serviceWorkerRegistration: registration
                 });
-
                 if (token) {
                     await sendTokenToServer(currentUser.username, token);
                 }
